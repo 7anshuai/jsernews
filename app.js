@@ -13,7 +13,7 @@ const cookieParser = require('cookie-parser');
 const favicon = require('serve-favicon');
 const logger = require('morgan');
 const Redis = require('ioredis');
-const HTMLGen = require('HTMLGen');
+const HTMLGen = require('html5-gen');
 
 const config = require('./config');
 
