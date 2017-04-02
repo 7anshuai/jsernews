@@ -5,7 +5,7 @@
   "scripts": {
     "debug": "DEBUG=jsernews:* node bin/www",
     "start": "node bin/www",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha"
   },
   "repository": {
     "type": "git",
@@ -27,13 +27,14 @@
     "debug": "^2.6.3",
     "express": "^4.14.0",
     "html5-gen": "0.0.5",
-    "ioredis": "^2.1.0",
+    "ioredis": "^2.5.0",
     "morgan": "^1.7.0",
     "serve-favicon": "^2.3.0",
     "underscore": "^1.8.3"
   },
   "devDependencies": {
     "mocha": "^3.2.0",
-    "should": "^11.2.1"
+    "should": "^11.2.1",
+    "supertest": "^3.0.0"
   }
 }

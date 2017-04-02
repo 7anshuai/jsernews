@@ -1,66 +1,66 @@
 // General
 module.exports = {
-  SiteName: "JSer News",
-  SiteUrl: "http://jsernews.com",
-  SiteDescription: "",
+  siteName: "JSer News",
+  siteUrl: "http://jsernews.com",
+  siteDescription: "",
 
   // Redis config
-  RedisURL: "redis://127.0.0.1:6379",
+  redisURL: "redis://127.0.0.1:6379",
 
   // Security
   PBKDF2Iterations: 1000, // Set this to 5000 to improve security. But it is slow.
-  UseOpenSSL: false,
-  PasswordMinLength: 8,
+  useOpenSSL: false,
+  passwordMinLength: 8,
 
   // Comments
-  CommentMaxLength: 4096,
-  CommentEditTime: 3600*2,
-  CommentReplyShift: 60,
-  UserCommentsPerPage: 10,
-  SubthreadsInRepliesPage: 10,
+  commentMaxLength: 4096,
+  commentEditTime: 3600*2,
+  commentReplyShift: 60,
+  userCommentsPerPage: 10,
+  subthreadsInRepliesPage: 10,
 
   // Karma
-  UserInitialKarma: 1,
-  KarmaIncrementInterval: 3600,
-  KarmaIncrementAmount: 1,
-  NewsDownvoteMinKarma: 30,
-  NewsDownvoteKarmaCost: 6,
-  NewsUpvoteMinKarma: 1,
-  NewsUpvoteKarmaCost: 1,
-  NewsUpvoteKarmaTransfered: 1,
-  KarmaIncrementComment: 1,
+  userInitialKarma: 1,
+  karmaIncrementInterval: 3600,
+  karmaIncrementAmount: 1,
+  newsDownvoteMinKarma: 30,
+  newsDownvoteKarmaCost: 6,
+  newsUpvoteMinKarma: 1,
+  newsUpvoteKarmaCost: 1,
+  newsUpvoteKarmaTransfered: 1,
+  karmaIncrementComment: 1,
 
   // UI Elements
-  KeyboardNavigation: 1,
+  keyboardNavigation: 1,
 
   // User
-  DeletedUser: {"username": "deleted_user", "email": "", "id": -1},
-  UserCreationDelay: 3600*24,
-  PasswordResetDelay: 3600*24,
-  UsernameRegexp: /^[a-zA-Z][a-zA-Z0-9_\-]+$/,
+  deletedUser: {"username": "deleted_user", "email": "", "id": -1},
+  userCreationDelay: 3600*24,
+  passwordResetDelay: 3600*24,
+  usernameRegexp: /^[a-zA-Z][a-zA-Z0-9_\-]+$/,
 
   // News and ranking
-  NewsAgePadding: 3600*8,
-  TopNewsPerPage: 30,
-  LatestNewsPerPage: 100,
-  NewsEditTime: 60*15,
-  NewsScoreLogStart: 10,
-  NewsScoreLogBooster: 2,
-  RankAgingFactor: 1.1,
-  PreventRepostTime: 3600*48,
-  NewsSubmissionBreak: 60*15,
-  SavedNewsPerPage: 10,
-  TopNewsAgeLimit: 3600*24*30,
+  newsAgePadding: 3600*8,
+  topNewsPerPage: 30,
+  latestNewsPerPage: 100,
+  newsEditTime: 60*15,
+  newsScoreLogStart: 10,
+  newsScoreLogBooster: 2,
+  rankAgingFactor: 1.1,
+  preventRepostTime: 3600*48,
+  newsSubmissionBreak: 60*15,
+  savedNewsPerPage: 10,
+  topNewsAgeLimit: 3600*24*30,
 
   // Footer links
-  FooterTwitterLink: false,
-  FooterGoogleGroupLink: false,
+  footerTwitterLink: false,
+  footerGoogleGroupLink: false,
 
   // API
   APIMaxNewsCount: 32,
 
   // Email service. Set MailRelay to false to disable this functionality
   // (this will prevent users from recovery accounts if the password gets lost).
-  MailRelay: "localhost",
-  MailFrom: "noreply@example.com"
+  mailRelay: "localhost",
+  mailFrom: "noreply@example.com"
 }
