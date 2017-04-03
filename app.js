@@ -16,7 +16,8 @@ const HTMLGen = require('html5-gen');
 const _ = require('underscore');
 const debug = require('debug')('jsernews:app');
 
-const {siteName} = require('./config');
+const {siteName, siteDescription} = require('./config');
+const {authUser} = require('./user');
 const version = require('./package').version;
 
 const app = express();
@@ -29,12 +30,12 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-let $h;
+let $h, $user;
 
 // before do block
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
   if (!$h) {
-    $h = new HTMLGen();
+    $h = global.$h = new HTMLGen();
     $h.append(() => {
       return $h.link({href: '/css/style.css?v0.0.1', rel: 'stylesheet'}) +
         $h.link({href: '/favicon.ico', rel: 'shortcut icon'})
@@ -45,6 +46,8 @@ app.use((req, res, next) => {
         $h.script({src: '/js/app.js?v0.0.1'})
     }, 'body');
   }
+  $user = global.$user = await authUser(req.cookies.auth);
+  // if ($user) increment_karma_if_needed
   next();
 });
 
@@ -67,10 +70,10 @@ app.use(function(req, res, next) {
 if (app.get('env') === 'development') {
   app.use(function(err, req, res, next) {
     res.status(err.status || 500);
-    res.send(JSON.stringify({
+    res.send({
       message: err.message,
       error: err
-    }));
+    });
   });
 }
 
@@ -78,10 +81,10 @@ if (app.get('env') === 'development') {
 // no stacktraces leaked to user
 app.use(function(err, req, res, next) {
   res.status(err.status || 500);
-  res.send(JSON.stringify({
+  res.send({
     message: err.message,
     err: {}
-  }));
+  });
 });
 
 // Navigation, header and footer
