@@ -19,6 +19,7 @@ const debug = require('debug')('jsernews:app');
 const {latestNewsPerPage, siteName, siteDescription} = require('./config');
 const {authUser} = require('./user');
 const {getLatestNews, getTopNews, newsToHTML, newsListToHTML} = require('./news');
+const redis = require('./redis');
 const version = require('./package').version;
 
 const app = express();
@@ -31,7 +32,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-let $h, $user;
+let $h, $user, $r = redis;
 
 // before do block
 app.use(async (req, res, next) => {
@@ -82,6 +83,13 @@ app.get('/latest/:start', async (req, res) => {
     return $h.h2('Latest News') +
       $h.section({id: 'newslist'}, newslist);
   }));
+});
+
+app.get('/random', async (req, res) => {
+  let counter = await $r.get('news.count');
+  let random = 1 + _.random(parseInt(counter));
+
+  res.redirect(await $r.exists(`news:${random}`) ? `/news/${random}` : `/news/${counter}`);
 });
 
 // catch 404 and forward to error handler
