@@ -1,5 +1,5 @@
-// General
 module.exports = {
+  // General
   siteName: "JSer News",
   siteUrl: "http://jsernews.com",
   siteDescription: "",
