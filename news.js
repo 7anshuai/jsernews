@@ -146,6 +146,8 @@ module.exports = {
   getNewsById: getNewsById,
   getTopNews: getTopNews,
   getLatestNews: getLatestNews,
+  getNewsDomain: getNewsDomain,
+  getNewsText: getNewsText,
   newsToHTML: newsToHTML,
   newsListToHTML: newsListToHTML
 }

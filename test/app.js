@@ -19,4 +19,12 @@ describe('APP Routes', function () {
   it('should get the latest page', done => {
     agent.get('/latest/0').expect(200, done);
   });
+
+  it('should redirect to a random news page', done => {
+    agent.get('/random').expect(302, done);
+  });
+
+  it('should get a news page', done => {
+    agent.get('/news/1').expect(200, done);
+  });
 });

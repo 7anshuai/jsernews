@@ -18,7 +18,7 @@ const debug = require('debug')('jsernews:app');
 
 const {latestNewsPerPage, siteName, siteDescription} = require('./config');
 const {authUser} = require('./user');
-const {getLatestNews, getTopNews, newsToHTML, newsListToHTML} = require('./news');
+const {getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, newsToHTML, newsListToHTML} = require('./news');
 const redis = require('./redis');
 const version = require('./package').version;
 
@@ -90,6 +90,52 @@ app.get('/random', async (req, res) => {
   let random = 1 + _.random(parseInt(counter));
 
   res.redirect(await $r.exists(`news:${random}`) ? `/news/${random}` : `/news/${counter}`);
+});
+
+app.get('/news/:news_id', async (req, res, next) => {
+  let {news_id} = req.params;
+  let news = await getNewsById(parseInt(news_id));
+  if (!news || !news.id) {
+    let err = new Error('404 - This news does not exist.');
+    err.status = 404;
+    return next(err);
+  }
+
+  // Show the news text if it is a news without URL.
+  let user, top_comment;
+  if (!getNewsDomain(news) && !news.del) {
+    let c = {
+        body: getNewsText(news),
+        ctime: news.ctime,
+        user_id: news.user_id,
+        thread_id: news.id,
+        topcomment: true
+    }
+    // user = get_user_by_id(news["user_id"]) || DeletedUser
+    // top_comment = $h.topcomment {comment_to_html(c,user)}
+  } else {
+    top_comment = "";
+  }
+
+  $h.setTitle(`${news.title} - ${siteName}`);
+  let script = $h.script('$(function() {$("input[name=post_comment]").click(post_comment);});');
+  $h.append(script, 'body');
+  let html = $h.page(() => {
+    return $h.section({id: 'newslist'}, newsToHTML(news)) + top_comment +
+      ($user && !news.del ?
+        $h.form({name: 'f'}, () => {
+          return $h.hidden({name: 'news_id', value: news.id}) +
+            $h.hidden({name: 'comment_id', value: -1}) +
+            $h.hidden({name: 'parent_id', value: -1}) +
+            $h.textarea({name: 'comment', cols: 60, rows: 60}) + $h.br +
+            $h.button({name: 'post_comment', value: 'Send comment'});
+        }) + $h.div({id: 'errormsg'}) :
+        $h.br()); // render_comments_for_news(news["id"])
+  });
+
+  // Remove the script after the news page has generated.
+  $h.tags.body = $h.tags.body.replace(script, '');
+  res.send(html);
 });
 
 // catch 404 and forward to error handler
