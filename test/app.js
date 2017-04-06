@@ -27,4 +27,8 @@ describe('APP Routes', function () {
   it('should get a news page', done => {
     agent.get('/news/1').expect(200, done);
   });
+
+  it('should get a login page', done => {
+    agent.get('/login').expect(200, done);
+  });
 });

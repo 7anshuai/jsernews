@@ -16,9 +16,10 @@ const HTMLGen = require('html5-gen');
 const _ = require('underscore');
 const debug = require('debug')('jsernews:app');
 
-const {latestNewsPerPage, siteName, siteDescription} = require('./config');
-const {authUser} = require('./user');
+const {keyboardNavigation, latestNewsPerPage, siteName, siteDescription} = require('./config');
+const {authUser, checkUserCredentials, updateAuthToken} = require('./user');
 const {getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, newsToHTML, newsListToHTML} = require('./news');
+const {checkParams} = require('./utils');
 const redis = require('./redis');
 const version = require('./package').version;
 
@@ -36,21 +37,25 @@ let $h, $user, $r = redis;
 
 // before do block
 app.use(async (req, res, next) => {
-  if (!$h) {
-    $h = global.$h = new HTMLGen();
-    $h.append(() => {
-      return $h.link({href: '/css/style.css?v0.0.1', rel: 'stylesheet'}) +
-        $h.link({href: '/favicon.ico', rel: 'shortcut icon'})
-    });
-    $h.append(applicationHeader(), 'header');
-    $h.append(applicationFooter, 'footer');
-    $h.append(() => {
-      return $h.script({src: '//code.jquery.com/jquery-3.1.1.min.js'}) +
-        $h.script({src: '/js/app.js?v0.0.1'})
-    }, 'body');
-  }
+
   $user = global.$user = await authUser(req.cookies.auth);
   // if ($user) increment_karma_if_needed
+
+  $h = global.$h = new HTMLGen();
+  $h.append(() => {
+    return $h.link({href: '/css/style.css?v0.0.1', rel: 'stylesheet'}) +
+      $h.link({href: '/favicon.ico', rel: 'shortcut icon'});
+  });
+  $h.append(applicationHeader(), 'header');
+  $h.append(applicationFooter, 'footer');
+  $h.append(() => {
+    return $h.script({src: '//code.jquery.com/jquery-3.1.1.min.js'}) +
+      $h.script({src: '/js/app.js?v0.0.1'}) +
+      ($user ? $h.script(`var apisecret = '${$user.apisecret}';`) : '') +
+      (keyboardNavigation == 1 
+        ? $h.script('setKeyboardNavigation();') : '');
+  }, 'body');
+
   next();
 });
 
@@ -127,15 +132,51 @@ app.get('/news/:news_id', async (req, res, next) => {
           return $h.hidden({name: 'news_id', value: news.id}) +
             $h.hidden({name: 'comment_id', value: -1}) +
             $h.hidden({name: 'parent_id', value: -1}) +
-            $h.textarea({name: 'comment', cols: 60, rows: 60}) + $h.br +
+            $h.textarea({name: 'comment', cols: 60, rows: 10}) + $h.br() +
             $h.button({name: 'post_comment', value: 'Send comment'});
         }) + $h.div({id: 'errormsg'}) :
         $h.br()); // render_comments_for_news(news["id"])
   });
 
-  // Remove the script after the news page has generated.
-  $h.tags.body = $h.tags.body.replace(script, '');
   res.send(html);
+});
+
+app.get('/login', (req, res) => {
+  $h.setTitle(`Login - ${siteName}`);
+  let script = $h.script('$(function() {$("form[name=f]").submit(login);});');
+  $h.append(script, 'body');
+  let html = $h.page(
+    $h.div({id: 'login'}, () => {
+      return $h.form({name: 'f'},
+        $h.label({for: 'username'}, 'username') +
+        $h.text({id: 'username', name: 'username', required: true}) +
+        $h.label({for: 'password'}, 'password') +
+        $h.password({id: 'password', name: 'password', required: true}) + $h.br() +
+        $h.checkbox({name: 'register', value: 1}) + 'create account' + $h.br() +
+        $h.submit({name: 'do_login'}, 'Login')
+      );
+    }) + $h.div({id: 'errormsg'}) + $h.a({href: '/reset-password'}, 'reset password')
+  );
+
+  res.send(html);
+});
+
+app.get('/logout', async (req, res) => {
+  let {apisecret} = req.query;
+  if ($user && checkApiSecret(apisecret)) {
+    await updateAuthToken($user);
+  }
+  res.redirect('/');
+});
+
+// API implementation
+app.get('/api/login', async (req, res) => {
+  let params = req.query;
+  if (!checkParams(params, 'username', 'password'))
+    return res.json({status: 'err', error: 'Username and password are two required fields.'});
+
+  let [auth, apisecret] = await checkUserCredentials(params.username, params.password) || [];
+  res.json(auth ? {status: 'ok', auth: auth, apisecret: apisecret} : {status: 'err', error: 'No match for the specified username / password pair.'});
 });
 
 // catch 404 and forward to error handler
@@ -168,6 +209,11 @@ app.use(function(err, req, res, next) {
     err: {}
   });
 });
+
+function checkApiSecret(apisecret) {
+  if (!$user) return false;
+  return apisecret && apisecret == $user.apisecret;
+}
 
 // Navigation, header and footer
 function applicationHeader() {
@@ -202,7 +248,6 @@ function applicationHeader() {
 }
 
 function applicationFooter() {
-  let apisecret = $user ? $h.script(`var apisecret = '${$user.apisecret}';`) : '';
   return $h.footer(() => {
     let links = [
       ['about', '/about'],
@@ -216,7 +261,17 @@ function applicationFooter() {
     }).filter((l) => {
       return l;
     }).join(' | ');
-  }) + apisecret;
+  }) + (keyboardNavigation == 1 ? $h.div({id: 'keyboard-help', style: 'display: none;'}, () => {
+    return $h.div({class: 'keyboard-help-banner banner-background banner'}) + ' ' + 
+      $h.div({class: 'keyboard-help-banner banner-foreground banner'}, () => {
+        return $h.div({class: 'primary-message'}, 'Keyboard shortcuts') + ' ' +
+          $h.div({class: 'secondary-message'}, () => {
+            return $h.p($h.strong({class: 'key'}, 'j/k:') + $h.span({class: 'desc'}, 'next/previous item')) +
+              $h.p($h.strong({class: 'key'}, 'enter:') + $h.span({class: 'desc'}, 'open link')) +
+              $h.p($h.strong({class: 'key'}, 'a/z:') + $h.span({class: 'desc'}, 'up/down vote item'));
+          });
+      });
+  }) : '');
 }
 
 // Generic API limiting function
