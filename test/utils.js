@@ -1,7 +1,30 @@
 const should = require('should');
-const {strElapsed} = require('../utils');
+const {checkParams, getRand, strElapsed} = require('../utils');
 
-describe('Utils', function () {
+describe('Utils', () => {
+
+  it('should get a truthy value from check parmas', done => {
+    let params = {username: 'ts', password: '123456'};
+
+    let result = checkParams(params, 'username', 'password');
+    result.should.equal(true);
+    done();
+  });
+
+  it('should get a falsy value from check parmas', done => {
+    let params = {username: 'ts', password: ''};
+
+    let result = checkParams(params, 'username', 'password');
+    result.should.equal(false);
+    done();
+  });
+
+  it('should get a random str', async () => {
+    let rand = await getRand();
+    rand.should.ok();
+    rand.length.should.equal(40);
+  });
+
   it('should get a string stating how much time has elapsed from the specified time', done => {
     const now = parseInt(new Date().getTime() / 1000);
 
