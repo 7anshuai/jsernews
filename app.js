@@ -16,8 +16,8 @@ const HTMLGen = require('html5-gen');
 const _ = require('underscore');
 const debug = require('debug')('jsernews:app');
 
-const {keyboardNavigation, latestNewsPerPage, siteName, siteDescription} = require('./config');
-const {authUser, checkUserCredentials, updateAuthToken} = require('./user');
+const {keyboardNavigation, latestNewsPerPage, siteName, siteDescription, siteUrl} = require('./config');
+const {authUser, checkUserCredentials, isAdmin, updateAuthToken} = require('./user');
 const {getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, newsToHTML, newsListToHTML} = require('./news');
 const {checkParams} = require('./utils');
 const redis = require('./redis');
@@ -141,6 +141,35 @@ app.get('/news/:news_id', async (req, res, next) => {
   res.send(html);
 });
 
+app.get('/submit', (req, res) => {
+  let {t, u} = req.query;
+  if (!$user) return res.redirect('/login');
+  $h.setTitle(`Submit a new story - ${siteName}`);
+  $h.append($h.script('$(function() {$("input[name=do_submit]").click(submit);});'), 'body');
+  res.send($h.page(
+    $h.h2('Submit a new story') +
+    $h.div({id: 'submitform'},
+      $h.form({name: 'f'},
+        $h.hidden({name: 'news_id', value: -1}) +
+        $h.label({for: 'title'}, 'title') +
+        $h.text({id: 'title', name: 'title', size: 80, value: (t ? $h.entities(t) : '')}) + $h.br() +
+        $h.label({for: 'url'}, 'url') + $h.br() +
+        $h.text({id: 'url', name: 'url', size: 60, value: (u ? $h.entities(u) : '')}) + $h.br() +
+        'or if you don\'t have an url type some text' + $h.br() +
+        $h.label({for: 'text'}, 'text') +
+        $h.textarea({id: 'text', name: 'text', cols: 60, rows: 10}) +
+        $h.button({name: 'do_submit', value: 'Submit'})
+      )
+    ) +
+    $h.div({class: 'errormsg'}) +
+    $h.p(() => {
+      let bl = `javascript:window.location=%22${siteUrl}/submit?u=%22+encodeURIComponent(document.location)+%22&t=%22+encodeURIComponent(document.title)`;
+      return 'Submitting news is simpler using the ' + $h.a({href: bl}, 'bookmarklet') +
+        ' (drag the link to your browser toolbar)';
+    })
+  ));
+});
+
 app.get('/login', (req, res) => {
   $h.setTitle(`Login - ${siteName}`);
   let script = $h.script('$(function() {$("form[name=f]").submit(login);});');
@@ -224,9 +253,16 @@ function applicationHeader() {
     ['submit', '/submit']
   ];
 
+  let navbar_replies_link = $user ? $h.a({href: '/replies', class: 'replies'}, () => {
+    let count = $user.replies || 0;
+    return 'replies ' + (parseInt(count) > 0 ? $h.sup(count) : '');
+  }) : '';
+
+  let navbar_admin_link = $user && isAdmin($user) ? $h.a({href: '/admin'}, $h.b('admin')) : '';
+
   let navbar = $h.nav(navitems.map((ni) => {
     return $h.a({href: ni[1]}, $h.entities(ni[0]));
-  }).join(''));
+  }).join('') + navbar_replies_link + navbar_admin_link);
 
   let rnavbar = $h.nav({id: 'account'}, () => {
     return $user ?

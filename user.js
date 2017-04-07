@@ -71,11 +71,26 @@ async function checkUserCredentials(username, password){
   return (user.password == hp) ? [user.auth, user.apisecret] : null;
 }
 
+// Check if the user has all the specified flags at the same time.
+// Returns true or false.
+function hasFlags(user, flags){
+  for (let flag of flags){
+    if (user.flags.indexOf(flag) == -1) return false;
+  }
+  return true;
+}
+
+function isAdmin(user){
+  return hasFlags(user, "a");
+}
+
 module.exports = {
   authUser: authUser,
   updateAuthToken: updateAuthToken,
   checkUserCredentials: checkUserCredentials,
   getUserById: getUserById,
   getUserByUsername: getUserByUsername,
-  hashPassword: hashPassword
+  hashPassword: hashPassword,
+  hasFlags: hasFlags,
+  isAdmin: isAdmin
 }
