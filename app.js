@@ -17,9 +17,9 @@ const HTMLGen = require('html5-gen');
 const _ = require('underscore');
 const debug = require('debug')('jsernews:app');
 
-const {keyboardNavigation, latestNewsPerPage, siteName, siteDescription, siteUrl} = require('./config');
+const {keyboardNavigation, latestNewsPerPage, savedNewsPerPage, siteName, siteDescription, siteUrl} = require('./config');
 const {authUser, checkUserCredentials, getUserByUsername, isAdmin, updateAuthToken} = require('./user');
-const {getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, newsToHTML, newsListToHTML} = require('./news');
+const {getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, getPostedNews, getSavedNews, newsToHTML, newsListToHTML} = require('./news');
 const {checkParams, strElapsed} = require('./utils');
 const redis = require('./redis');
 const version = require('./package').version;
@@ -181,6 +181,55 @@ app.get('/user/:username', async (req, res, next) => {
           $h.button({name: 'update_profile', value: 'Update profile'});
       }) + $h.div({id: 'errormsg'}) : ''));
   res.send(html);
+});
+
+app.get('/usernews/:username/:start', async (req, res, next) => {
+  let start = + req.params.start;
+  let user = await getUserByUsername(req.params.username);
+  if (typeof start != 'number' || isNaN(start)) return next();
+  if (!user) return res.status(404).send('Non existing user');
+
+  $h.setTitle(`News posted by ${user.username} - ${siteName}`);
+  let paginate = {
+    get: async (start, count) => {
+      return await getPostedNews(user.id, start, count);
+    },
+    render: (item) => {
+      return newsToHTML(item);
+    },
+    start: start,
+    perpage: savedNewsPerPage,
+    link: `/usernews/${$h.entities(user.username)}/$`
+  }
+  let newslist = await listItems(paginate);
+  res.send($h.page(() => {
+    return $h.h2(`News posted by ${user.username}`) +
+      $h.section({id: 'newslist'}, newslist);
+  }));
+});
+
+app.get('/saved/:start', async (req, res, next) => {
+  let start = + req.params.start;
+  if (!$user) return res.redirect('/login');
+  if (typeof start != 'number' || isNaN(start)) return next();
+
+  $h.setTitle(`Saved news - ${siteName}`);
+  let paginate = {
+    get: async (start, count) => {
+      return await getSavedNews($user.id, start, count);
+    },
+    render: (item) => {
+      return newsToHTML(item);
+    },
+    start: start,
+    perpage: savedNewsPerPage,
+    link: '/saved/$'
+  }
+  let newslist = await listItems(paginate);
+  res.send($h.page(() => {
+    return $h.h2('You saved News') +
+      $h.section({id: 'newslist'}, newslist);
+  }));
 });
 
 app.get('/submit', (req, res) => {

@@ -142,12 +142,28 @@ async function getLatestNews(start, count){
   return [await getNewsById(news_ids), numitems];
 }
 
+// Get saved news of current user
+async function getSavedNews(user_id, start, count) {
+  let numitems = + await $r.zcard(`user.saved:${user_id}`);
+  let news_ids = await $r.zrevrange(`user.saved:${user_id}`, start, start + (count - 1));
+  return [await getNewsById(news_ids), numitems];
+}
+
+// Get news posted by the specified user
+async function getPostedNews(user_id, start, count){
+    let numitems = + await $r.zcard(`user.posted:${user_id}`);
+    let news_ids = await $r.zrevrange(`user.posted:${user_id}`, start, start + (count - 1));
+    return [await getNewsById(news_ids), numitems];
+}
+
 module.exports = {
   getNewsById: getNewsById,
   getTopNews: getTopNews,
   getLatestNews: getLatestNews,
   getNewsDomain: getNewsDomain,
   getNewsText: getNewsText,
+  getSavedNews: getSavedNews,
+  getPostedNews: getPostedNews,
   newsToHTML: newsToHTML,
   newsListToHTML: newsListToHTML
 }

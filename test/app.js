@@ -35,4 +35,8 @@ describe('APP Routes', function () {
   it('should get a user home page', done => {
     agent.get('/user/ts').expect(200, done);
   });
+
+  it('should get a user posted news page', done => {
+    agent.get('/user/ts').expect(200, done);
+  });
 });
