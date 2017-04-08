@@ -63,7 +63,7 @@ app.use(async (req, res, next) => {
 app.get('/', async (req, res) => {
   let [news, numitems] = await getTopNews();
   $h.setTitle(`${siteName} - ${siteDescription}`);
-  res.send($h.page($h.h2('Top News') + newsListToHTML(news)));
+  res.send($h.page($h.h2('Top News') + newsListToHTML(news, req.query)));
 });
 
 app.get('/latest', (req, res) => {
@@ -230,6 +230,31 @@ app.get('/saved/:start', async (req, res, next) => {
     return $h.h2('You saved News') +
       $h.section({id: 'newslist'}, newslist);
   }));
+});
+
+app.get('/admin', async (req, res, next) => {
+  if(!$user || !isAdmin($user)) return res.redirect('/');
+  let user_count = await $r.get('users.count');
+  let news_count = await $r.zcard('news.cron');
+  let used_memory = await $r.info('memory');
+
+  $h.setTitle(`Admin section - ${siteName}`);
+  res.send($h.page(
+    $h.div({id: 'adminlinks'}, () => {
+      return $h.h2('Admin') +
+        $h.h3('Site stats') +
+        $h.ul(() => {
+          return $h.li(`${user_count} users`) +
+            $h.li(`${news_count} news posted`) +
+            $h.li(`${used_memory.match(/used_memory_human:(\S*)/)[1]} of memory used`);
+        }) +
+        $h.h3('Developer tools') +
+        $h.ul(
+          $h.li($h.a({href: '/recompute'}, 'Recompute news score and rank (may be slow!)')) +
+          $h.li($h.a({href: '/?debug=1'}, 'Show annotated home page'))
+        );
+    })
+  ));
 });
 
 app.get('/submit', (req, res) => {

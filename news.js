@@ -1,8 +1,9 @@
 const _ = require('underscore');
 const debug = require('debug')('jsernews:news');
 
-const {newsEditTime, topNewsPerPage} = require('./config');
+const {newsEditTime, newsAgePadding, rankAgingFactor, siteUrl, topNewsAgeLimit, topNewsPerPage} = require('./config');
 const $r = require('./redis');
+const {isAdmin} = require('./user');
 const {strElapsed} = require('./utils');
 
 // News
@@ -51,6 +52,16 @@ async function getNewsById(news_ids, opt={}) {
 
 }
 
+// Given the news compute its rank, that is function of time and score.
+//
+// The general forumla is RANK = SCORE / (AGE ^ AGING_FACTOR)
+function computeNewsRank(news){
+  let age = parseInt(new Date().getTime() / 1000) - (+ news.ctime);
+  let rank = (parseFloat(news.score)*1000000) / ((age+ newsAgePadding) ** rankAgingFactor);
+  if (age > topNewsAgeLimit) rank = -age;
+  return rank;
+}
+
 // Return the host part of the news URL field.
 // If the url is in the form text:// nil is returned.
 function getNewsDomain(news){
@@ -69,7 +80,7 @@ function getNewsText(news){
 // a linked title with buttons to up/down vote plus additional info.
 // This function expects as input a news entry as obtained from
 // the get_news_by_id function.
-function newsToHTML (news) {
+function newsToHTML (news, opt) {
   let $h = global.$h,
     $user = global.$user;
   if (news.del) return $h.article({class: 'deleted'}, '[deleted news]');
@@ -96,21 +107,23 @@ function newsToHTML (news) {
         return $h.span({class: 'upvotes'}, `${news.up} up and `) +
           $h.span({class: 'downvotes'}, `${news.down} down, posted by `) +
           $h.a({href: `/user/${$h.urlencode(news.username)}`}, $h.entities(news.username)) + ' ' + strElapsed(news.ctime) + ' ' +
-          $h.a({href: `/news/${news.id}`}, parseInt(news.comments) != 0 ? `${news.comments} comment${news.comments > 1 ? 's' : ''}` : 'discuss')
-          // user is admin ?
-          // debug mode
-      }) + ($h.pretty ? '\n' : '');
+          $h.a({href: `/news/${news.id}`}, parseInt(news.comments) != 0 ? `${news.comments} comment${news.comments > 1 ? 's' : ''}` : 'discuss') + ($user && isAdmin($user) 
+            ? ' - ' + $h.a({href: `/editnews/${news.id}`}, 'edit') + ' - ' + $h.a({href: `https://twitter.com/intent/tweet?url=${siteUrl}/news/${news.id}&text=${$h.urlencode(news.title)} - `}, 'tweet')
+            : '');
+      }) + (opt && opt.debug && $user && isAdmin($user) 
+        ? ` id: ${news.id} score: ${news.score} rank: ${computeNewsRank(news)} zset_rank: `
+        : '') + ($h.pretty ? '\n' : '');
   });
 }
 
 // If 'news' is a list of news entries (Ruby hashes with the same fields of
 // the Redis hash representing the news in the DB) this function will render
 // the HTML needed to show this news.
-function newsListToHTML(news) {
+function newsListToHTML(news, opt) {
   return global.$h.section({id: 'newslist'}, () => {
     let aux = '';
     news.forEach((n) => {
-      aux += newsToHTML(n);
+      aux += newsToHTML(n, opt);
     });
     return aux;
   });
