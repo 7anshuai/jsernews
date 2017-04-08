@@ -4,6 +4,7 @@
 
 'use strict';
 
+const {createHash} = require('crypto');
 const path = require('path');
 const url = require('url');
 
@@ -17,9 +18,9 @@ const _ = require('underscore');
 const debug = require('debug')('jsernews:app');
 
 const {keyboardNavigation, latestNewsPerPage, siteName, siteDescription, siteUrl} = require('./config');
-const {authUser, checkUserCredentials, isAdmin, updateAuthToken} = require('./user');
+const {authUser, checkUserCredentials, getUserByUsername, isAdmin, updateAuthToken} = require('./user');
 const {getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, newsToHTML, newsListToHTML} = require('./news');
-const {checkParams} = require('./utils');
+const {checkParams, strElapsed} = require('./utils');
 const redis = require('./redis');
 const version = require('./package').version;
 
@@ -138,6 +139,47 @@ app.get('/news/:news_id', async (req, res, next) => {
         $h.br()); // render_comments_for_news(news["id"])
   });
 
+  res.send(html);
+});
+
+app.get('/user/:username', async (req, res, next) => {
+  let username = req.params.username;
+  let user = await getUserByUsername(username);
+  if (!user) return res.status(404).send('Non existing user');
+  let [posted_news, posted_comments] = await $r.pipeline([
+    ['zcard', `user.posted:${user.id}`],
+    ['zcard', `user.comments:${user.id}`]
+  ]).exec();
+  $h.setTitle(`${user.username} - ${siteName}`);
+  let owner = $user && ($user.id == user.id);
+  let html = $h.page(
+    $h.div({class: 'userinfo'}, () => {
+      return $h.span({class: 'avatar'}, () => {
+        let email = user.email || '';
+        let digest = createHash('md5').update(email).digest('hex');
+        return $h.img({src: `//gravatar.com/avatar/${digest}?s=48&d=mm`});
+      }) + ' ' +
+      $h.h2($h.entities(user.username)) +
+      $h.pre($h.entities(user.about)) +
+      $h.ul(() => {
+        return $h.li($h.b('created ') + strElapsed(+ user.ctime)) +
+          $h.li($h.b('karma ') + `${user.karma} points`) +
+          $h.li($h.b('posted news ') + `${posted_news[1]}`) +
+          $h.li($h.b('posted comments ') + `${posted_comments[1]}`) +
+          (owner ? $h.li($h.a({href: '/saved/0'}, 'saved news')) : '') +
+          $h.li($h.a({href: `/usercomments/${$h.urlencode(user.username)}/0`}, 'user comments')) +
+          $h.li($h.a({href: `/usernews/${$h.urlencode(user.username)}/0`}, 'user news'));
+      }); 
+    }) + (owner ? $h.append($h.script('$(function(){$("input[name=update_profile]").click(update_profile);});'), 'body') && 
+      $h.br() + $h.form({name: 'f'}, () => {
+        return $h.label({for: 'email'}, 'email (not visible, used for gravatar)') + $h.br() +
+          $h.text({id: 'email', name: 'email', size: 40, value: $h.entities(user.email)}) + $h.br() +
+          $h.label({for: 'password'}, 'change password (optional)') + $h.br() +
+          $h.password({name: 'password', size: 40}) + $h.br() +
+          $h.label({for: 'about'}, 'about') + $h.br() +
+          $h.textarea({id: 'about', name: 'about', cols: 60, rows: 10}, $h.entities(user.about)) + $h.br() +
+          $h.button({name: 'update_profile', value: 'Update profile'});
+      }) + $h.div({id: 'errormsg'}) : ''));
   res.send(html);
 });
 

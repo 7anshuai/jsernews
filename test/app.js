@@ -31,4 +31,8 @@ describe('APP Routes', function () {
   it('should get a login page', done => {
     agent.get('/login').expect(200, done);
   });
+
+  it('should get a user home page', done => {
+    agent.get('/user/ts').expect(200, done);
+  });
 });
