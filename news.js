@@ -1,7 +1,7 @@
 const _ = require('underscore');
 const debug = require('debug')('jsernews:news');
 
-const {newsEditTime, newsAgePadding, rankAgingFactor, siteUrl, topNewsAgeLimit, topNewsPerPage} = require('./config');
+const {newsEditTime, newsAgePadding, newsScoreLogStart, newsScoreLogBooster, rankAgingFactor, siteUrl, topNewsAgeLimit, topNewsPerPage} = require('./config');
 const $r = require('./redis');
 const {isAdmin} = require('./user');
 const {strElapsed} = require('./utils');
@@ -50,6 +50,26 @@ async function getNewsById(news_ids, opt={}) {
   // the single element the caller requested.
   return opt['single'] ? result[0] : result;
 
+}
+
+// Given the news compute its score.
+// No side effects.
+async function computeNewsScore(news){
+  let upvotes = await $r.zrange(`news.up:${news.id}`, 0, -1, 'withscores');
+  let downvotes = await $r.zrange(`news.down:${news.id}`, 0, -1, 'withscores');
+  // FIXME: For now we are doing a naive sum of votes, without time-based
+  // filtering, nor IP filtering.
+  // We could use just ZCARD here of course, but I'm using ZRANGE already
+  // since this is what is needed in the long term for vote analysis.
+  let score = upvotes.length - downvotes.length;
+  // Now let's add the logarithm of the sum of all the votes, since
+  // something with 5 up and 5 down is less interesting than something
+  // with 50 up and 50 donw.
+  let votes = upvotes.length / 2 + downvotes.length / 2;
+  if (votes > newsScoreLogStart)
+    score += Math.log(votes- newsScoreLogStart) * newsScoreLogBooster;
+  
+  return score;
 }
 
 // Given the news compute its rank, that is function of time and score.
@@ -170,6 +190,8 @@ async function getPostedNews(user_id, start, count){
 }
 
 module.exports = {
+  computeNewsRank: computeNewsRank,
+  computeNewsScore: computeNewsScore,
   getNewsById: getNewsById,
   getTopNews: getTopNews,
   getLatestNews: getLatestNews,

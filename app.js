@@ -19,7 +19,7 @@ const debug = require('debug')('jsernews:app');
 
 const {keyboardNavigation, latestNewsPerPage, savedNewsPerPage, siteName, siteDescription, siteUrl} = require('./config');
 const {authUser, checkUserCredentials, getUserByUsername, isAdmin, updateAuthToken} = require('./user');
-const {getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, getPostedNews, getSavedNews, newsToHTML, newsListToHTML} = require('./news');
+const {computeNewsRank, computeNewsScore, getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, getPostedNews, getSavedNews, newsToHTML, newsListToHTML} = require('./news');
 const {checkParams, strElapsed} = require('./utils');
 const redis = require('./redis');
 const version = require('./package').version;
@@ -255,6 +255,19 @@ app.get('/admin', async (req, res, next) => {
         );
     })
   ));
+});
+
+app.get('/recompute', async (req, res) => {
+  if (!$user || !isAdmin($user)) return res.redirect('/');
+  let range = await $r.zrange('news.cron', 0, -1);
+  for (let news_id of range) {
+    let news = await getNewsById(news_id);
+    let score = await computeNewsScore(news)
+    let rank = computeNewsRank(news)
+    await $r.hmset(`news:${news_id}`, 'score', score, 'rank', rank)
+    await $r.zadd('news.top', rank, news_id)
+  }
+  res.send($h.page($h.p('Done.')));
 });
 
 app.get('/submit', (req, res) => {
