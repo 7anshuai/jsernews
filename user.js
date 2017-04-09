@@ -1,9 +1,9 @@
 const {pbkdf2} = require('crypto');
-const {PBKDF2Iterations} = require('./config')
+const {karmaIncrementAmount, karmaIncrementInterval, PBKDF2Iterations} = require('./config')
 const debug = require('debug')('jsernews:user');
 
 const $r = require('./redis');
-const {getRand} = require('./utils');
+const {getRand, numElapsed} = require('./utils');
 
 // Try to authenticate the user, if the credentials are ok we assign the
 // $user global with the user information.
@@ -36,6 +36,44 @@ async function updateAuthToken(user){
     return null;
   }
   return new_auth_token;
+}
+
+// In Lamer News users get karma visiting the site.
+// Increment the user karma by KarmaIncrementAmount if the latest increment
+// was performed more than KarmaIncrementInterval seconds ago.
+//
+// Return value: none.
+//
+// Notes: this function must be called only in the context of a logged in
+//        user.
+//
+// Side effects: the user karma is incremented and the $user hash updated.
+async function incrementKarmaIfNeeded(){
+  let $user = global.$user;
+  if ((+ $user['karma_incr_time']) < (numElapsed() - karmaIncrementInterval)){
+    let userkey = `user:${$user.id}`;
+    await $r.hset(userkey, 'karma_incr_time', numElapsed());
+    await incrementUserKarmaBy($user.id, karmaIncrementAmount);
+  }
+}
+
+// Increment the user karma by the specified amount and make sure to
+// update $user to reflect the change if it is the same user id.
+async function incrementUserKarmaBy(user_id, increment){
+  let $user = global.$user;
+  let userkey = `user:${user_id}`;
+  await $r.hincrby(userkey, 'karma', increment);
+  if ($user && ($user.id == user_id))
+      $user.karma = parseInt($user.karma) + increment;
+}
+
+// Return the specified user karma.
+async function getUserKarma(user_id){
+  let $user = global.$user;
+  if ($user && (user_id == $user.id)) return $user.karma;
+  let userkey = `user:${user_id}`;
+  let karma = await $r.hget(userkey, 'karma');
+  return karma ? karma : 0;
 }
 
 // Turn the password into an hashed one, using PBKDF2 with HMAC-SHA1
@@ -92,5 +130,6 @@ module.exports = {
   getUserByUsername: getUserByUsername,
   hashPassword: hashPassword,
   hasFlags: hasFlags,
-  isAdmin: isAdmin
+  isAdmin: isAdmin,
+  incrementKarmaIfNeeded: incrementKarmaIfNeeded
 }

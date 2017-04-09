@@ -18,7 +18,7 @@ const _ = require('underscore');
 const debug = require('debug')('jsernews:app');
 
 const {keyboardNavigation, latestNewsPerPage, savedNewsPerPage, siteName, siteDescription, siteUrl} = require('./config');
-const {authUser, checkUserCredentials, getUserByUsername, isAdmin, updateAuthToken} = require('./user');
+const {authUser, checkUserCredentials, getUserByUsername, incrementKarmaIfNeeded, isAdmin, updateAuthToken} = require('./user');
 const {computeNewsRank, computeNewsScore, getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, getPostedNews, getSavedNews, newsToHTML, newsListToHTML} = require('./news');
 const {checkParams, strElapsed} = require('./utils');
 const redis = require('./redis');
@@ -40,7 +40,7 @@ let $h, $user, $r = redis;
 app.use(async (req, res, next) => {
 
   $user = global.$user = await authUser(req.cookies.auth);
-  // if ($user) increment_karma_if_needed
+  if ($user) await incrementKarmaIfNeeded();
 
   $h = global.$h = new HTMLGen();
   $h.append(() => {
