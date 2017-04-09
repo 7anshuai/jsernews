@@ -4,7 +4,7 @@ const debug = require('debug')('jsernews:news');
 const {newsEditTime, newsAgePadding, newsScoreLogStart, newsScoreLogBooster, rankAgingFactor, siteUrl, topNewsAgeLimit, topNewsPerPage} = require('./config');
 const $r = require('./redis');
 const {isAdmin} = require('./user');
-const {strElapsed} = require('./utils');
+const {numElapsed, strElapsed} = require('./utils');
 
 // News
 // Fetch one or more (if an Array is passed) news from Redis by id.
@@ -76,7 +76,7 @@ async function computeNewsScore(news){
 //
 // The general forumla is RANK = SCORE / (AGE ^ AGING_FACTOR)
 function computeNewsRank(news){
-  let age = parseInt(new Date().getTime() / 1000) - (+ news.ctime);
+  let age = numElapsed() - (+ news.ctime);
   let rank = (parseFloat(news.score)*1000000) / ((age+ newsAgePadding) ** rankAgingFactor);
   if (age > topNewsAgeLimit) rank = -age;
   return rank;
@@ -120,7 +120,7 @@ function newsToHTML (news, opt) {
     return $h.a({href: '#up', class: upclass}, '&#9650;') + ' ' +
       $h.h3($h.a({href: news.url, rel: 'nofollow'}, $h.entities(news.title))) + ' ' +
       $h.address(() => {
-        return (domain ? `at ${$h.entities(domain)}` : '') + (($user && $user.id == news.user_id && news.ctime > (new Date().getTime() - newsEditTime)) ? ' ' + $h.a({href: `/editnews/${news.id}`}, '[edit]') : '');
+        return (domain ? `at ${$h.entities(domain)}` : '') + (($user && $user.id == news.user_id && news.ctime > (numElapsed() - newsEditTime)) ? ' ' + $h.a({href: `/editnews/${news.id}`}, '[edit]') : '');
       }) +
       $h.a({href: '#down', class: downclass}, '&#9660;') +
       $h.p(() => {

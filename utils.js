@@ -3,20 +3,6 @@ const util = require('util');
 
 // Utility functions
 
-// Given an unix time in the past returns a string stating how much time
-// has elapsed from the specified time, in the form "2 hours ago".
-function strElapsed(t){
-  let seconds = parseInt(new Date().getTime() / 1000 - t);
-  if (seconds <= 1) return 'now';
-
-  let time_lengths = [[86400, "day"], [3600, "hour"], [60, "minute"], [1, "second"]];
-  let [length, label] = time_lengths.filter((item) => {
-    return seconds >= item[0];
-  })[0];
-  let units = parseInt(seconds/length);
-  return `${units} ${label}${units > 1 ? 's' : ''} ago`;
-}
-
 // Check that the list of parameters specified exist.
 // If at least one is missing false is returned, otherwise true is returned.
 //
@@ -46,8 +32,30 @@ async function getRand() {
   return await p;
 }
 
+// Return a Number representing the seconds elapsed since the UNIX epoch.
+function numElapsed(t) {
+  let ms = t && new Date(t).getTime();
+  if (typeof ms != 'number' || isNaN(ms)) ms = Date.now();
+  return parseInt(ms / 1000);
+}
+
+// Given an unix time in the past returns a string stating how much time
+// has elapsed from the specified time, in the form "2 hours ago".
+function strElapsed(t){
+  let seconds = parseInt(numElapsed() - t);
+  if (seconds <= 1) return 'now';
+
+  let time_lengths = [[86400, "day"], [3600, "hour"], [60, "minute"], [1, "second"]];
+  let [length, label] = time_lengths.filter((item) => {
+    return seconds >= item[0];
+  })[0];
+  let units = parseInt(seconds / length);
+  return `${units} ${label}${units > 1 ? 's' : ''} ago`;
+}
+
 module.exports = {
   checkParams: checkParams,
   getRand: getRand,
-  strElapsed : strElapsed
+  numElapsed: numElapsed,
+  strElapsed: strElapsed
 }

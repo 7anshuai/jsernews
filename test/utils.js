@@ -1,5 +1,5 @@
 const should = require('should');
-const {checkParams, getRand, strElapsed} = require('../utils');
+const {checkParams, numElapsed, getRand, strElapsed} = require('../utils');
 
 describe('Utils', () => {
 
@@ -25,8 +25,13 @@ describe('Utils', () => {
     rand.length.should.equal(40);
   });
 
+  it('should get a number representing the seconds elapsed since the UNIX epoch.', async () => {
+    const now = numElapsed();
+    now.should.equal(parseInt(new Date().getTime() / 1000));
+  });
+
   it('should get a string stating how much time has elapsed from the specified time', done => {
-    const now = parseInt(new Date().getTime() / 1000);
+    const now = numElapsed();
 
     const oneSecondAgo = strElapsed(now - 1);
     const tenSecondsAgo = strElapsed(now - 10);
