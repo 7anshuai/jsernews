@@ -40,6 +40,44 @@ async function updateAuthToken(user){
   return new_auth_token;
 }
 
+// Create a new user with the specified username/password
+//
+// Return value: the function returns two values, the first is the
+//               auth token if the registration succeeded, otherwise
+//               is nil. The second is the error message if the function
+//               failed (detected testing the first return value).
+async function createUser(username, password, opt){
+  let isExists = await $r.exists(`username.to.id:${username.toLowerCase()}`);
+  if (isExists)
+    return [null, null, "Username is already taken, please try a different one."];
+
+  if (await rateLimitByIP(userCreationDelay, "create_user", opt.ip))
+    return [null, null, "Please wait some time before creating a new user."];
+
+  let id = await $r.incr("users.count")
+  let auth_token = await getRand();
+  let apisecret = await getRand();
+  let salt = await getRand();
+  await $r.hmset(`user:${id}`, {
+    'id': id,
+    'username': username,
+    'salt': salt,
+    'password': await hashPassword(password, salt),
+    'ctime': numElapsed(),
+    'karma': userInitialKarma,
+    'about': '',
+    'email': '',
+    'auth': auth_token,
+    'apisecret': apisecret,
+    'flags': id == 1 ? 'a' : '', // First user ever created (id = 1) is an admin
+    'karma_incr_time': numElapsed()
+  });
+  await $r.set(`username.to.id:${username.toLowerCase()}`, id);
+  await $r.set(`auth:${auth_token}`, id);
+
+  return [auth_token, apisecret, null];
+}
+
 // In Lamer News users get karma visiting the site.
 // Increment the user karma by KarmaIncrementAmount if the latest increment
 // was performed more than KarmaIncrementInterval seconds ago.
@@ -144,9 +182,18 @@ function isAdmin(user){
   return hasFlags(user, "a");
 }
 
+// Generic API limiting function
+async function rateLimitByIP(delay, ...tags) {
+  let key = 'limit:' + tags.join('.');
+  if (await $r.exists(key)) return true;
+  await $r.setex(key, delay, 1);
+  return false;
+}
+
 module.exports = {
   addFlags: addFlags,
   authUser: authUser,
+  createUser: createUser,
   updateAuthToken: updateAuthToken,
   checkUserCredentials: checkUserCredentials,
   getUserById: getUserById,

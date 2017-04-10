@@ -25,9 +25,10 @@ describe('Utils', () => {
     rand.length.should.equal(40);
   });
 
-  it('should get a number representing the seconds elapsed since the UNIX epoch.', async () => {
+  it('should get a number representing the seconds elapsed since the UNIX epoch.', done => {
     const now = numElapsed();
     now.should.equal(parseInt(new Date().getTime() / 1000));
+    done();
   });
 
   it('should get a string stating how much time has elapsed from the specified time', done => {

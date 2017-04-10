@@ -1,10 +1,17 @@
 const should = require('should');
 const redis = require('../redis');
-const {addFlags, getUserById, getUserByUsername, hashPassword, hasFlags, isAdmin} = require('../user');
+const {addFlags, createUser, getUserById, getUserByUsername, hashPassword, hasFlags, isAdmin} = require('../user');
 
 describe('User', () => {
   after(async () => {
     await redis.flushdb();
+  });
+
+  it('should create a new user', async () => {
+    let [authToken, apisecret, message] = await createUser('ts', '123456', {ip: '127.0.0.1'});
+    authToken.should.ok();
+    apisecret.should.ok();
+    should(message).equal(null);
   });
 
   it('should get a user by id', async () => {
@@ -36,10 +43,10 @@ describe('User', () => {
     isAdmin(user).should.equal(true);
   });
 
-  // it('should get a hash password', async () => {
-  //   let user = await getUserById(1);
-  //   let p = await hashPassword('password', user.salt);
-  //   p.should.equal(user.password);
-  //   p.length.should.equal(40);
-  // });
+  it('should get a hash password', async () => {
+    let user = await getUserById(1);
+    let p = await hashPassword('123456', user.salt);
+    p.should.equal(user.password);
+    p.length.should.equal(40);
+  });
 });

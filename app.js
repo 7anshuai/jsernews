@@ -17,8 +17,8 @@ const HTMLGen = require('html5-gen');
 const _ = require('underscore');
 const debug = require('debug')('jsernews:app');
 
-const {keyboardNavigation, latestNewsPerPage, savedNewsPerPage, siteName, siteDescription, siteUrl} = require('./config');
-const {authUser, checkUserCredentials, getUserByUsername, incrementKarmaIfNeeded, isAdmin, updateAuthToken} = require('./user');
+const {keyboardNavigation, latestNewsPerPage, passwordMinLength, savedNewsPerPage, siteName, siteDescription, siteUrl, usernameRegexp} = require('./config');
+const {authUser, checkUserCredentials, createUser, getUserByUsername, incrementKarmaIfNeeded, isAdmin, updateAuthToken} = require('./user');
 const {computeNewsRank, computeNewsScore, getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, getPostedNews, getSavedNews, newsToHTML, newsListToHTML} = require('./news');
 const {checkParams, strElapsed} = require('./utils');
 const redis = require('./redis');
@@ -335,6 +335,21 @@ app.get('/api/login', async (req, res) => {
 
   let [auth, apisecret] = await checkUserCredentials(params.username, params.password) || [];
   res.json(auth ? {status: 'ok', auth: auth, apisecret: apisecret} : {status: 'err', error: 'No match for the specified username / password pair.'});
+});
+
+app.post('/api/create_account', async (req, res) => {
+  let {username, password} = req.body;
+  if (!checkParams(req.body, 'username', 'password'))
+    return res.json({status: 'err', error: 'Username and password are two required fields.'});
+  if (!usernameRegexp.test(username))
+    return res.json({status: 'err', error: `Username must match /${usernameRegexp.source}/`});
+  if(password.length < passwordMinLength)
+    return res.json({status: err, error: `Password is too short. Min length: ${passwordMinLength}`});
+
+  let [auth, apisecret, errmsg] = await createUser(username, password, {ip: req.ip});
+  if (auth)
+    return res.json({status: 'ok', auth: auth, apisecret: apisecret});
+  res.json({status: 'err', error: errmsg});
 });
 
 // catch 404 and forward to error handler
