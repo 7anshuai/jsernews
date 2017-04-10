@@ -1,5 +1,5 @@
 const should = require('should');
-const {getUserById, getUserByUsername, hashPassword, hasFlags, isAdmin} = require('../user');
+const {addFlags, getUserById, getUserByUsername, hashPassword, hasFlags, isAdmin} = require('../user');
 
 describe('User', () => {
   it('should get a user by id', async () => {
@@ -12,6 +12,13 @@ describe('User', () => {
     let user = await getUserByUsername('ts');
     user.id.should.equal('1');
     user.username.should.equal('ts');
+  });
+
+  it('should add the specified set of flags to the user', async () => {
+    let ok = await addFlags(1, 'ak');
+    let user = await getUserById(1);
+    ok.should.equal(true);
+    user.flags.should.equal('ak');
   });
 
   it('should check a user has flags', async () => {

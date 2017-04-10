@@ -1,9 +1,11 @@
 const {pbkdf2} = require('crypto');
-const {karmaIncrementAmount, karmaIncrementInterval, PBKDF2Iterations} = require('./config')
+const {karmaIncrementAmount, karmaIncrementInterval, PBKDF2Iterations, userCreationDelay, userInitialKarma} = require('./config')
 const debug = require('debug')('jsernews:user');
 
 const $r = require('./redis');
 const {getRand, numElapsed} = require('./utils');
+
+// User and authentication
 
 // Try to authenticate the user, if the credentials are ok we assign the
 // $user global with the user information.
@@ -109,6 +111,26 @@ async function checkUserCredentials(username, password){
   return (user.password == hp) ? [user.auth, user.apisecret] : null;
 }
 
+// Add the specified set of flags to the user.
+// Returns false on error (non existing user), otherwise true is returned.
+//
+// Current flags:
+// 'a'   Administrator.
+// 'k'   Karma source, can transfer more karma than owned.
+// 'n'   Open links to new windows.
+async function addFlags(user_id, flags){
+  let user = await getUserById(user_id);
+  if (!user) return false;
+  let newflags = user.flags;
+  for (let flag of flags) {
+    if (!hasFlags(user, flag)) newflags += flag;
+  }
+  // Note: race condition here if somebody touched the same field
+  // at the same time: very unlkely and not critical so not using WATCH.
+  await $r.hset(`user:${user.id}`, 'flags', newflags);
+  return true;
+}
+
 // Check if the user has all the specified flags at the same time.
 // Returns true or false.
 function hasFlags(user, flags){
@@ -123,6 +145,7 @@ function isAdmin(user){
 }
 
 module.exports = {
+  addFlags: addFlags,
   authUser: authUser,
   updateAuthToken: updateAuthToken,
   checkUserCredentials: checkUserCredentials,
