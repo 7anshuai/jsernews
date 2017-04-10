@@ -1,7 +1,12 @@
 const should = require('should');
+const redis = require('../redis');
 const {addFlags, getUserById, getUserByUsername, hashPassword, hasFlags, isAdmin} = require('../user');
 
 describe('User', () => {
+  after(async () => {
+    await redis.flushdb();
+  });
+
   it('should get a user by id', async () => {
     let user = await getUserById(1);
     user.id.should.equal('1');

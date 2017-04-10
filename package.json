@@ -3,10 +3,10 @@
   "version": "0.0.1",
   "description": "",
   "scripts": {
-    "cover": "istanbul cover _mocha",
+    "cover": "NODE_ENV=test istanbul cover _mocha",
     "debug": "DEBUG=jsernews:* node bin/www",
     "start": "node bin/www",
-    "test": "mocha"
+    "test": "NODE_ENV=test mocha"
   },
   "repository": {
     "type": "git",
