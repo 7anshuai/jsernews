@@ -50,7 +50,7 @@ function submit() {
         text: $("textarea[name=text]").val(),
         apisecret: apisecret
     };
-    var del = $("input[name=del]").length && $("input[name=del]").attr("checked");
+    var del = $("input[name=del]").length && $("input[name=del]").prop("checked");
     $.ajax({
         type: "POST",
         url: del ? "/api/delnews" : "/api/submit",

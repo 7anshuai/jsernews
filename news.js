@@ -1,9 +1,9 @@
 const _ = require('underscore');
 const debug = require('debug')('jsernews:news');
 
-const {newsEditTime, newsAgePadding, newsScoreLogStart, newsScoreLogBooster, rankAgingFactor, siteUrl, topNewsAgeLimit, topNewsPerPage} = require('./config');
+const {commentMaxLength, newsEditTime, newsAgePadding, newsScoreLogStart, newsScoreLogBooster, newsSubmissionBreak, newsUpvoteMinKarma, newsDownvoteMinKarma, newsUpvoteKarmaCost, newsDownvoteKarmaCost, newsUpvoteKarmaTransfered, preventRepostTime, rankAgingFactor, siteUrl, topNewsAgeLimit, topNewsPerPage} = require('./config');
 const $r = require('./redis');
-const {isAdmin} = require('./user');
+const {getUserById, getUserKarma, incrementUserKarmaBy, isAdmin} = require('./user');
 const {numElapsed, strElapsed} = require('./utils');
 
 // News
@@ -93,7 +93,128 @@ function getNewsDomain(news){
 // inside. Otherwise nil is returned.
 function getNewsText(news){
   let su = news["url"].split("/");
-  return (su[0] == "text:") ? news["url"].substring(7,-1) : null;
+  return (su[0] == "text:") ? news["url"].substring(7, -1) : null;
+}
+
+// Add a news with the specified url or text.
+//
+// If an url is passed but was already posted in the latest 48 hours the
+// news is not inserted, and the ID of the old news with the same URL is
+// returned.
+//
+// Return value: the ID of the inserted news, or the ID of the news with
+// the same URL recently added.
+async function insertNews(title, url, text, user_id){
+  // If we don't have an url but a comment, we turn the url into
+  // text://....first comment..., so it is just a special case of
+  // title+url anyway.
+  let textpost = url.length == 0;
+  if (textpost)
+    url = "text://" + text.substring(0, commentMaxLength);
+
+  // Check for already posted news with the same URL.
+  let id = await $r.get(`url:` + url);
+  if (!textpost && id) return parseInt(id);
+
+  // We can finally insert the news.
+  let ctime = numElapsed();
+  let news_id = await $r.incr("news.count");
+  await $r.hmset(`news:${news_id}`, {
+    id: news_id,
+    title: title,
+    url: url,
+    user_id: user_id,
+    ctime: ctime,
+    score: 0,
+    rank: 0,
+    up: 0,
+    down: 0,
+    comments: 0
+  });
+
+  // The posting user virtually upvoted the news posting it
+  let [rank, error] = await voteNews(news_id, user_id, 'up');
+  // Add the news to the user submitted news
+  await $r.zadd(`user.posted:${user_id}`, ctime, news_id);
+  // Add the news into the chronological view
+  await $r.zadd('news.cron', ctime, news_id);
+  // Add the news into the top view
+  await $r.zadd('news.top', rank, news_id);
+  // Add the news url for some time to avoid reposts in short time
+  if (!textpost) await $r.setex('url:' + url, preventRepostTime, news_id);
+  // Set a timeout indicating when the user may post again
+  await $r.setex(`user:${user_id}:submitted_recently`, newsSubmissionBreak, '1');
+  return news_id;
+}
+
+// Vote the specified news in the context of a given user.
+// type is either :up or :down
+//
+// The function takes care of the following:
+// 1) The vote is not duplicated.
+// 2) That the karma is decreased from voting user, accordingly to vote type.
+// 3) That the karma is transfered to the author of the post, if different.
+// 4) That the news score is updaed.
+//
+// Return value: two return values are returned: rank,error
+//
+// If the fucntion is successful rank is not nil, and represents the news karma
+// after the vote was registered. The error is set to nil.
+//
+// On error the returned karma is false, and error is a string describing the
+// error that prevented the vote.
+async function voteNews(news_id, user_id, vote_type){
+  // Fetch news and user
+  let $user = global.$user;
+  let user = ($user && $user.id == user_id) ? $user : await getUserById(user_id);
+  let news = await getNewsById(news_id);
+  if (!news || !user) return [false, 'No such news or user.'];
+
+  // Now it's time to check if the user already voted that news, either
+  // up or down. If so return now.
+  if (await $r.zscore(`news.up:${news_id}`, user_id) || await $r.zscore(`news.down:${news_id}`, user_id))
+    return [false, 'Duplicated vote.'];
+
+  // Check if the user has enough karma to perform this operation
+  let karma = await getUserKarma(user_id);
+  if (user.id != news.user_id){
+    if ((vote_type == 'up' && (karma < newsUpvoteMinKarma)) ||
+      (vote_type == 'down' && (karma < newsDownvoteMinKarma)))
+      return [false, `You don't have enough karma to vote ${vote_type}`];
+  }
+
+  // News was not already voted by that user. Add the vote.
+  // Note that even if there is a race condition here and the user may be
+  // voting from another device/API in the time between the ZSCORE check
+  // and the zadd, this will not result in inconsistencies as we will just
+  // update the vote time with ZADD.
+  if (await $r.zadd(`news.${vote_type}:${news_id}`, numElapsed(), user_id))
+    await $r.hincrby(`news:${news_id}`, vote_type, 1);
+
+  if (vote_type == 'up')
+    await $r.zadd(`user.saved:${user_id}`, numElapsed(), news_id);
+
+  // Compute the new values of score and karma, updating the news accordingly.
+  let score = await computeNewsScore(news);
+  news.score = score;
+  let rank = computeNewsRank(news);
+  await $r.hmset(`news:${news_id}`, {
+    'score': score,
+    'rank': rank
+  });
+  await $r.zadd("news.top", rank, news_id);
+
+  // Remove some karma to the user if needed, and transfer karma to the
+  // news owner in the case of an upvote.
+  if (user.id != news.user_id){
+    if (vote_type == 'up') {
+      await incrementUserKarmaBy(user_id, -newsUpvoteKarmaCost);
+      await incrementUserKarmaBy(news['user_id'], newsUpvoteKarmaTransfered);
+    } else {
+      await incrementUserKarmaBy(user_id, -newsDownvoteKarmaCost);
+    }
+  }
+  return [rank, null];
 }
 
 // Turn the news into its HTML representation, that is
@@ -199,6 +320,7 @@ module.exports = {
   getNewsText: getNewsText,
   getSavedNews: getSavedNews,
   getPostedNews: getPostedNews,
+  insertNews: insertNews,
   newsToHTML: newsToHTML,
   newsListToHTML: newsListToHTML
 }

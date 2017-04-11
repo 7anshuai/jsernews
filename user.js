@@ -198,6 +198,7 @@ module.exports = {
   checkUserCredentials: checkUserCredentials,
   getUserById: getUserById,
   getUserByUsername: getUserByUsername,
+  getUserKarma: getUserKarma,
   hashPassword: hashPassword,
   hasFlags: hasFlags,
   isAdmin: isAdmin,

@@ -19,7 +19,7 @@ const debug = require('debug')('jsernews:app');
 
 const {keyboardNavigation, latestNewsPerPage, passwordMinLength, savedNewsPerPage, siteName, siteDescription, siteUrl, usernameRegexp} = require('./config');
 const {authUser, checkUserCredentials, createUser, getUserByUsername, incrementKarmaIfNeeded, isAdmin, updateAuthToken} = require('./user');
-const {computeNewsRank, computeNewsScore, getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, getPostedNews, getSavedNews, newsToHTML, newsListToHTML} = require('./news');
+const {computeNewsRank, computeNewsScore, getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, getPostedNews, getSavedNews, insertNews, newsToHTML, newsListToHTML} = require('./news');
 const {checkParams, strElapsed} = require('./utils');
 const redis = require('./redis');
 const version = require('./package').version;
@@ -290,7 +290,7 @@ app.get('/submit', (req, res) => {
         $h.button({name: 'do_submit', value: 'Submit'})
       )
     ) +
-    $h.div({class: 'errormsg'}) +
+    $h.div({id: 'errormsg'}) +
     $h.p(() => {
       let bl = `javascript:window.location=%22${siteUrl}/submit?u=%22+encodeURIComponent(document.location)+%22&t=%22+encodeURIComponent(document.title)`;
       return 'Submitting news is simpler using the ' + $h.a({href: bl}, 'bookmarklet') +
@@ -352,6 +352,39 @@ app.post('/api/create_account', async (req, res) => {
   res.json({status: 'err', error: errmsg});
 });
 
+app.post('/api/submit', async (req, res) => {
+  let {apisecret, news_id, text, title, url} = req.body
+  if (!$user) return res.json({status: 'err', error: 'Not authenticated.'});
+  if (!checkApiSecret(apisecret)) return res.json({status: 'err', error: 'Wrong form secret.'});
+  // We can have an empty url or an empty first comment, but not both.
+  if(!checkParams(req.body, 'title', 'news_id') || (url.length == 0 && text.length == 0))
+    return res.json({status: 'err', error: 'Please specify a news title and address or text.'});
+
+  // Make sure the URL is about an acceptable protocol, that is
+  // http:// or https:// for now.
+  if (url.length != 0) {
+    if (url.indexOf("http://") != 0 &&
+      url.indexOf("https://") != 0)
+      return res.json({
+        status: "err",
+        error: "We only accept http:// and https:// news."
+      });
+  }
+
+  // insert news
+  if(parseInt(news_id) == -1) {
+    let seconds = await allowedToPostInSeconds();
+    if (seconds > 0) {
+      return res.json({status: 'err', error: 'You have submitted a story too recently, ' +
+        `please wait ${seconds} seconds.`});
+    }
+    news_id = await insertNews(title, url, text, $user.id);
+  }
+
+  return res.json({status: 'ok', news_id: news_id});
+
+});
+
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   var err = new Error('Not Found');
@@ -386,6 +419,17 @@ app.use(function(err, req, res, next) {
 function checkApiSecret(apisecret) {
   if (!$user) return false;
   return apisecret && apisecret == $user.apisecret;
+}
+
+// Has the user submitted a news story in the last `NewsSubmissionBreak` seconds?
+async function submittedRecently(){
+  return await allowedToPostInSeconds() > 0;
+}
+
+// Indicates when the user is allowed to submit another story after the last.
+async function allowedToPostInSeconds(){
+  if (isAdmin($user)) return 0;
+  return await $r.ttl(`user:${$user.id}:submitted_recently`)
 }
 
 // Navigation, header and footer
