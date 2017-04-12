@@ -1,7 +1,7 @@
 const should = require('should');
 const redis = require('../redis');
-const {getNewsById, delNews, insertNews} = require('../news');
-const {createUser} = require('../user');
+const {getNewsById, delNews, editNews, insertNews, voteNews} = require('../news');
+const {createUser, incrementUserKarmaBy} = require('../user');
 
 describe('News', () => {
   before(async () => {
@@ -47,8 +47,22 @@ describe('News', () => {
     news[1].username.should.equal('ts');
   });
 
+  it('should edit news by id', async () => {
+    let news_id = await editNews(1, 'JSer News', 'https://jsernews.com/', '', 1);
+    news_id.should.ok();
+    let news = await getNewsById(news_id);
+    news.title.should.equal('JSer News');
+  });
+
   it('should del news by id', async () => {
     let bool = await delNews(2, 1);
     bool.should.ok();
   });
+
+  it('should get a duplicated vote error', async () => {
+    let [rank, error] = await voteNews(1, 1, 'up');
+    error.should.ok();
+    error.should.equal('Duplicated vote.')
+  });
+
 });

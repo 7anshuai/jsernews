@@ -202,5 +202,6 @@ module.exports = {
   hashPassword: hashPassword,
   hasFlags: hasFlags,
   isAdmin: isAdmin,
-  incrementKarmaIfNeeded: incrementKarmaIfNeeded
+  incrementKarmaIfNeeded: incrementKarmaIfNeeded,
+  incrementUserKarmaBy: incrementUserKarmaBy
 }

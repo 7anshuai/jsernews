@@ -1,6 +1,6 @@
 const should = require('should');
 const redis = require('../redis');
-const {addFlags, createUser, getUserById, getUserByUsername, hashPassword, hasFlags, isAdmin} = require('../user');
+const {addFlags, createUser, getUserById, getUserByUsername, hashPassword, hasFlags, isAdmin, incrementUserKarmaBy} = require('../user');
 
 describe('User', () => {
   after(async () => {
@@ -48,5 +48,11 @@ describe('User', () => {
     let p = await hashPassword('123456', user.salt);
     p.should.equal(user.password);
     p.length.should.equal(40);
+  });
+
+  it('should increment user karma by user id', async () => {
+    await incrementUserKarmaBy(1, 10);
+    let user = await getUserById(1);
+    user.karma.should.equal('11');
   });
 });

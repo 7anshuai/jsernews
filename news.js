@@ -15,6 +15,7 @@ const {numElapsed, strElapsed} = require('./utils');
 // Doing this in a centralized way offers us the ability to exploit
 // Redis pipelining.
 async function getNewsById(news_ids, opt={}) {
+  let $user = global.$user;
   let result = [];
   if (!_.isArray(news_ids)) {
     opt['single'] = true;
@@ -34,17 +35,39 @@ async function getNewsById(news_ids, opt={}) {
   if (news.length === 0) return opt['single'] ? null : [];
 
   // Get the all news
-  // await $r.pipeline();
+  for (let n of news) {
+  // Adjust rank if too different from the real-time value.
+    if (opt.update_rank) await updateNewsRankIfNeeded(n[1]);
+    result.push(n[1]);
+  }
 
   // Get the associated users information
-  let usernames = await $r.pipeline(news.map((n) => {
-    result.push(n[1]);
-    return ['hget', `user:${n[1].user_id}`, 'username'];
+  let usernames = await $r.pipeline(result.map((n) => {
+    return ['hget', `user:${n.user_id}`, 'username'];
   })).exec();
 
   result.forEach((n, i) => {
     n["username"] = usernames[i][1];
   });
+
+  // Load $User vote information if we are in the context of a
+  // registered user.
+  if ($user) {
+    let commands = _.flatten(result.map((n) => {
+      return [
+        ['zscore', `news.up:${n.id}`, $user.id],
+        ['zscore', `news.down:${n.id}`, $user.id]
+      ];
+    }), true);
+
+    let votes = await $r.pipeline(commands).exec();
+    result.forEach((n, i) => {
+      if (votes[i*2][1])
+        n["voted"] = 'up';
+      else if (votes[(i*2)+1][1])
+        n["voted"] = 'down';
+    });
+  }
 
   // Return an array if we got an array as input, otherwise
   // the single element the caller requested.
@@ -80,6 +103,24 @@ function computeNewsRank(news){
   let rank = (parseFloat(news.score)*1000000) / ((age+ newsAgePadding) ** rankAgingFactor);
   if (age > topNewsAgeLimit) rank = -age;
   return rank;
+}
+
+// Updating the rank would require some cron job and worker in theory as
+// it is time dependent and we don't want to do any sorting operation at
+// page view time. But instead what we do is to compute the rank from the
+// score and update it in the sorted set only if there is some sensible error.
+// This way ranks are updated incrementally and "live" at every page view
+// only for the news where this makes sense, that is, top news.
+//
+// Note: this function can be called in the context of redis.pipelined {...}
+async function updateNewsRankIfNeeded(n){
+  let real_rank = computeNewsRank(n);
+  let delta_rank = Math.abs(real_rank - parseInt(n.rank));
+  if (delta_rank > 0.000001){
+    await $r.hmset(`news:${n.id}`, 'rank', real_rank);
+    await $r.zadd('news.top', real_rank, n.id);
+    n.rank = real_rank
+  }
 }
 
 // Return the host part of the news URL field.
@@ -372,6 +413,7 @@ module.exports = {
   delNews: delNews,
   editNews: editNews,
   insertNews: insertNews,
+  voteNews: voteNews,
   newsToHTML: newsToHTML,
   newsListToHTML: newsListToHTML
 }

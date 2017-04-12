@@ -19,7 +19,7 @@ const debug = require('debug')('jsernews:app');
 
 const {keyboardNavigation, latestNewsPerPage, passwordMinLength, savedNewsPerPage, siteName, siteDescription, siteUrl, usernameRegexp} = require('./config');
 const {authUser, checkUserCredentials, createUser, getUserByUsername, incrementKarmaIfNeeded, isAdmin, updateAuthToken} = require('./user');
-const {computeNewsRank, computeNewsScore, getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, getPostedNews, getSavedNews, delNews, editNews, insertNews, newsToHTML, newsListToHTML} = require('./news');
+const {computeNewsRank, computeNewsScore, getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, getPostedNews, getSavedNews, delNews, editNews, insertNews, voteNews, newsToHTML, newsListToHTML} = require('./news');
 const {checkParams, strElapsed} = require('./utils');
 const redis = require('./redis');
 const version = require('./package').version;
@@ -431,6 +431,18 @@ app.post('/api/delnews', async (req, res, next) => {
   let news_id = req.body.news_id;
   if (await delNews(news_id, $user.id)) return res.json({status: 'ok', news_id: -1});
   res.json({status: 'err', error: 'News too old or wrong ID/owner.'});
+});
+
+app.post('/api/votenews', async (req, res, next) => {
+  if (!$user) return res.json({status: 'err', error: 'Not authenticated.'});
+  if (!req.body.apisecret) return res.json({status: 'err', error: 'Wrong form secret.'});
+  if (!checkParams(req.body, 'news_id', 'vote_type') ||
+    (req.body.vote_type != 'up' && req.body.vote_type != 'down'))
+    return res.json({status: 'err', error: 'Missing news ID or invalid vote type.'});
+  let {news_id, vote_type} = req.body;
+  let [rank, error] = await voteNews(parseInt(news_id), $user.id, vote_type);
+  if (rank) return res.json({status: 'ok'});
+  res.json({status: 'err', error: error});
 });
 
 // catch 404 and forward to error handler
