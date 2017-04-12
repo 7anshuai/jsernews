@@ -19,7 +19,7 @@ const debug = require('debug')('jsernews:app');
 
 const {keyboardNavigation, latestNewsPerPage, passwordMinLength, savedNewsPerPage, siteName, siteDescription, siteUrl, usernameRegexp} = require('./config');
 const {authUser, checkUserCredentials, createUser, getUserByUsername, incrementKarmaIfNeeded, isAdmin, updateAuthToken} = require('./user');
-const {computeNewsRank, computeNewsScore, getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, getPostedNews, getSavedNews, insertNews, newsToHTML, newsListToHTML} = require('./news');
+const {computeNewsRank, computeNewsScore, getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, getPostedNews, getSavedNews, editNews, insertNews, newsToHTML, newsListToHTML} = require('./news');
 const {checkParams, strElapsed} = require('./utils');
 const redis = require('./redis');
 const version = require('./package').version;
@@ -140,6 +140,40 @@ app.get('/news/:news_id', async (req, res, next) => {
   });
 
   res.send(html);
+});
+
+app.get('/editnews/:news_id', async (req, res, next) => {
+  if (!$user) return res.redirect('/login');
+  let news_id = req.params.news_id;
+  let news = await getNewsById(news_id);
+  if (!news) return res.status(404).send('404 - This news does not exist.');
+  if (parseInt($user.id) != parseInt(news.user_id) && !isAdmin($user))
+    return res.status(403).send('Permission denied.');
+
+  let text;
+  if (getNewsDomain(news)) {
+    text = '';
+  } else {
+    text = getNewsText(news);
+    news.url = '';
+  }
+
+  $h.setTitle(`Edit news - ${siteName}`);
+  $h.append($h.script('$(function() {$("input[name=edit_news]").click(submit);});'), 'body');
+  let form = $h.div({id: 'submitform'}, $h.form({name: 'f'}, () => {
+    return $h.hidden({name: 'news_id', value: news.id}) +
+      $h.label({for: 'title'}, 'text') +
+      $h.text({id: 'title', name: 'title', size: 80, value: news.title}) + $h.br() +
+      $h.label({for: 'url'}, 'url') + $h.br() +
+      $h.text({id: 'url', name: 'url', size: 60, value: $h.entities(news.url)}) + $h.br() +
+      'or if you don\'t have an url type some text' + $h.br() +
+      $h.label({for: 'text'}, 'text') +
+      $h.textarea({id: 'text', name: 'text', cols: 60, rows: 10}, $h.entities(text)) + $h.br() +
+      $h.checkbox({name: 'del', value: '1'}) + 'delete this news' + $h.br() +
+      $h.button({name: 'edit_news', value: 'Edit news'});
+  }));
+
+  res.send($h.page(newsToHTML(news) + form + $h.div({id: 'errormsg'})));
 });
 
 app.get('/user/:username', async (req, res, next) => {
@@ -379,6 +413,10 @@ app.post('/api/submit', async (req, res) => {
         `please wait ${seconds} seconds.`});
     }
     news_id = await insertNews(title, url, text, $user.id);
+  } else {
+    news_id = await editNews(news_id, title, url, text, $user.id);
+    if (!news_id) return res.json({status: 'err', error: 'Invalid parameters, news too old to be modified ' +
+      'or url recently posted.'});
   }
 
   return res.json({status: 'ok', news_id: news_id});

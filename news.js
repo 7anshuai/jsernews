@@ -96,6 +96,41 @@ function getNewsText(news){
   return (su[0] == "text:") ? news["url"].substring(7, -1) : null;
 }
 
+// Edit an already existing news.
+//
+// On success the news_id is returned.
+// On success but when a news deletion is performed (empty title) -1 is returned.
+// On failure (for instance news_id does not exist or does not match
+//             the specified user_id) false is returned.
+async function editNews(news_id, title, url, text, user_id){
+  let news = await getNewsById(news_id);
+  if (!news || parseInt(news.user_id) != parseInt(user_id) && !isAdmin($user)) return false;
+  if (!(parseInt(news.ctime) > (numElapsed() - newsEditTime)) && !isAdmin($user)) return false;
+
+  // If we don't have an url but a comment, we turn the url into
+  // text://....first comment..., so it is just a special case of
+  // title+url anyway.
+  let textpost = url.length == 0
+  if (textpost)
+    url = 'text://' + text.substring(0, commentMaxLength);
+  // Even for edits don't allow to change the URL to the one of a
+  // recently posted news.
+  if (!textpost && url != news.url) {
+      if (await $r.get('url:' + url)) return false;
+      // No problems with this new url, but the url changed
+      // so we unblock the old one and set the block in the new one.
+      // Otherwise it is easy to mount a DOS attack.
+      await $r.del('url:' + news.url);
+      if (!textpost) await $r.setex('url:' + url, preventRepostTime, news_id);
+  }
+  // Edit the news fields.
+  await $r.hmset(`news:${news_id}`,{
+    title: title,
+    url: url
+  });
+  return news_id;
+}
+
 // Add a news with the specified url or text.
 //
 // If an url is passed but was already posted in the latest 48 hours the
@@ -320,6 +355,7 @@ module.exports = {
   getNewsText: getNewsText,
   getSavedNews: getSavedNews,
   getPostedNews: getPostedNews,
+  editNews: editNews,
   insertNews: insertNews,
   newsToHTML: newsToHTML,
   newsListToHTML: newsListToHTML
