@@ -1,6 +1,6 @@
 const should = require('should');
 const redis = require('../redis');
-const {getNewsById, insertNews} = require('../news');
+const {getNewsById, delNews, insertNews} = require('../news');
 const {createUser} = require('../user');
 
 describe('News', () => {
@@ -45,5 +45,10 @@ describe('News', () => {
     news[1].down.should.equal('0');
     news[1].user_id.should.equal('1');
     news[1].username.should.equal('ts');
+  });
+
+  it('should del news by id', async () => {
+    let bool = await delNews(2, 1);
+    bool.should.ok();
   });
 });

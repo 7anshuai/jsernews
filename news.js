@@ -96,6 +96,19 @@ function getNewsText(news){
   return (su[0] == "text:") ? news["url"].substring(7, -1) : null;
 }
 
+// Mark an existing news as removed.
+async function delNews(news_id, user_id){
+  let $user = global.$user;
+  let news = await getNewsById(news_id);
+  if (!news || parseInt(news.user_id) != parseInt(user_id) && !isAdmin($user)) return false;
+  if (!(parseInt(news.ctime) > (numElapsed() - newsEditTime)) && !isAdmin($user)) return false;
+
+  await $r.hmset(`news:${news_id}`, 'del', 1);
+  await $r.zrem("news.top", news_id);
+  await $r.zrem("news.cron", news_id);
+  return true;
+}
+
 // Edit an already existing news.
 //
 // On success the news_id is returned.
@@ -103,6 +116,7 @@ function getNewsText(news){
 // On failure (for instance news_id does not exist or does not match
 //             the specified user_id) false is returned.
 async function editNews(news_id, title, url, text, user_id){
+  let $user = global.$user;
   let news = await getNewsById(news_id);
   if (!news || parseInt(news.user_id) != parseInt(user_id) && !isAdmin($user)) return false;
   if (!(parseInt(news.ctime) > (numElapsed() - newsEditTime)) && !isAdmin($user)) return false;
@@ -355,6 +369,7 @@ module.exports = {
   getNewsText: getNewsText,
   getSavedNews: getSavedNews,
   getPostedNews: getPostedNews,
+  delNews: delNews,
   editNews: editNews,
   insertNews: insertNews,
   newsToHTML: newsToHTML,

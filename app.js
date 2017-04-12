@@ -19,7 +19,7 @@ const debug = require('debug')('jsernews:app');
 
 const {keyboardNavigation, latestNewsPerPage, passwordMinLength, savedNewsPerPage, siteName, siteDescription, siteUrl, usernameRegexp} = require('./config');
 const {authUser, checkUserCredentials, createUser, getUserByUsername, incrementKarmaIfNeeded, isAdmin, updateAuthToken} = require('./user');
-const {computeNewsRank, computeNewsScore, getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, getPostedNews, getSavedNews, editNews, insertNews, newsToHTML, newsListToHTML} = require('./news');
+const {computeNewsRank, computeNewsScore, getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, getPostedNews, getSavedNews, delNews, editNews, insertNews, newsToHTML, newsListToHTML} = require('./news');
 const {checkParams, strElapsed} = require('./utils');
 const redis = require('./redis');
 const version = require('./package').version;
@@ -387,12 +387,13 @@ app.post('/api/create_account', async (req, res) => {
 });
 
 app.post('/api/submit', async (req, res) => {
-  let {apisecret, news_id, text, title, url} = req.body
   if (!$user) return res.json({status: 'err', error: 'Not authenticated.'});
-  if (!checkApiSecret(apisecret)) return res.json({status: 'err', error: 'Wrong form secret.'});
+  if (!checkApiSecret(req.body.apisecret)) return res.json({status: 'err', error: 'Wrong form secret.'});
   // We can have an empty url or an empty first comment, but not both.
   if(!checkParams(req.body, 'title', 'news_id') || (url.length == 0 && text.length == 0))
     return res.json({status: 'err', error: 'Please specify a news title and address or text.'});
+
+  let {news_id, text, title, url} = req.body;
 
   // Make sure the URL is about an acceptable protocol, that is
   // http:// or https:// for now.
@@ -421,6 +422,15 @@ app.post('/api/submit', async (req, res) => {
 
   return res.json({status: 'ok', news_id: news_id});
 
+});
+
+app.post('/api/delnews', async (req, res, next) => {
+  if (!$user) return res.json({status: 'err', error: 'Not authenticated.'});
+  if (!req.body.apisecret) return res.json({status: 'err', error: 'Wrong form secret.'});
+  if (!checkParams(req.body, 'news_id')) return res.json({status: 'err', error: 'Please specify a news title.'});
+  let news_id = req.body.news_id;
+  if (await delNews(news_id, $user.id)) return res.json({status: 'ok', news_id: -1});
+  res.json({status: 'err', error: 'News too old or wrong ID/owner.'});
 });
 
 // catch 404 and forward to error handler
