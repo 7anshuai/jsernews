@@ -335,8 +335,8 @@ function newsToHTML (news, opt) {
       }) +
       $h.a({href: '#down', class: downclass}, '&#9660;') +
       $h.p(() => {
-        return $h.span({class: 'upvotes'}, `${news.up} up and `) +
-          $h.span({class: 'downvotes'}, `${news.down} down, posted by `) +
+        return $h.span({class: 'upvotes'}, `${news.up}`) + ' up and ' +
+          $h.span({class: 'downvotes'}, `${news.down}`) + ' down, posted by ' +
           $h.a({href: `/user/${$h.urlencode(news.username)}`}, $h.entities(news.username)) + ' ' + strElapsed(news.ctime) + ' ' +
           $h.a({href: `/news/${news.id}`}, parseInt(news.comments) != 0 ? `${news.comments} comment${news.comments > 1 ? 's' : ''}` : 'discuss') + ($user && isAdmin($user) 
             ? ' - ' + $h.a({href: `/editnews/${news.id}`}, 'edit') + ' - ' + $h.a({href: `https://twitter.com/intent/tweet?url=${siteUrl}/news/${news.id}&text=${$h.urlencode(news.title)} - `}, 'tweet')

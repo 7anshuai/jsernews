@@ -266,6 +266,29 @@ app.get('/saved/:start', async (req, res, next) => {
   }));
 });
 
+app.get('/about', (req, res, next) => {
+  $h.setTitle(`About - ${siteName}`);
+  res.send($h.page(
+    $h.div({id: 'about'},
+      $h.h2(`${siteName}`) +
+      $h.p('JSer News 是一个社区驱动的中文新闻网站，完全专注于 JavaScript 开发，HTML5，前端和 Node.js') +
+      $h.h3($h.b('成员')) +
+      $h.p('创立与维护者: ' + $h.a({href: 'http://7anshuai.js.org/'}, '@7anshuai')) +
+      $h.h3($h.b('发帖规则：')) +
+      $h.ul(
+        $h.li('编辑标题：只允许文章标题，不带博客名，不带日期等其他信息') +
+        $h.li('编辑 URLs：不带跟踪代码') +
+        $h.li('尊重惯例：JavaScript，不用 javascript 或 javaScript 或 Javascript') +
+        $h.li('标记超过一年的文章。例如： Welcome to JSer News! (2015)') +
+        $h.li('不链接到摘要，仅链接到原始内容') +
+        $h.li('不使用短地址，只允许到页面的真实链接') +
+        $h.li('仅发布 JavaScript 相关内容') +
+        $h.li('仅发布中文内容')
+      )
+    )
+  ));
+});
+
 app.get('/admin', async (req, res, next) => {
   if(!$user || !isAdmin($user)) return res.redirect('/');
   let user_count = await $r.get('users.count');
@@ -390,7 +413,7 @@ app.post('/api/submit', async (req, res) => {
   if (!$user) return res.json({status: 'err', error: 'Not authenticated.'});
   if (!checkApiSecret(req.body.apisecret)) return res.json({status: 'err', error: 'Wrong form secret.'});
   // We can have an empty url or an empty first comment, but not both.
-  if(!checkParams(req.body, 'title', 'news_id') || (url.length == 0 && text.length == 0))
+  if(!checkParams(req.body, 'title', 'news_id') || (req.body.url.length == 0 && req.body.text.length == 0))
     return res.json({status: 'err', error: 'Please specify a news title and address or text.'});
 
   let {news_id, text, title, url} = req.body;
