@@ -18,7 +18,7 @@ const _ = require('underscore');
 const debug = require('debug')('jsernews:app');
 
 const {keyboardNavigation, latestNewsPerPage, passwordMinLength, savedNewsPerPage, siteName, siteDescription, siteUrl, usernameRegexp} = require('./config');
-const {authUser, checkUserCredentials, createUser, getUserByUsername, incrementKarmaIfNeeded, isAdmin, updateAuthToken} = require('./user');
+const {authUser, checkUserCredentials, createUser, getUserByUsername, hashPassword, incrementKarmaIfNeeded, isAdmin, updateAuthToken} = require('./user');
 const {computeNewsRank, computeNewsScore, getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, getPostedNews, getSavedNews, delNews, editNews, insertNews, voteNews, newsToHTML, newsListToHTML} = require('./news');
 const {checkParams, strElapsed} = require('./utils');
 const redis = require('./redis');
@@ -407,6 +407,22 @@ app.post('/api/create_account', async (req, res) => {
   if (auth)
     return res.json({status: 'ok', auth: auth, apisecret: apisecret});
   res.json({status: 'err', error: errmsg});
+});
+
+app.post('/api/updateprofile', async (req, res) => {
+  if (!$user) return res.json({status: 'err', error: 'Not authenticated.'});
+  if (!checkApiSecret(req.body.apisecret)) return res.json({status: 'err', error: 'Wrong form secret.'});
+  let {about, email, password} = _.mapObject(req.body, v => v.trim());
+  if (password.length > 0) {
+    if (password.length < passwordMinLength) return res.json({status: 'err', error: 'Password is too short. ' +
+      `Min length: ${passwordMinLength}`});
+    await $r.hmset(`user:${$user.id}`, 'password', await hashPassword(password, $user.salt));
+  }
+  await $r.hmset(`user:${$user.id}`, {
+    'about': about.substring(0, 4095),
+    'email': email.substring(0, 255)
+  });
+  res.json({status: 'ok'});
 });
 
 app.post('/api/submit', async (req, res) => {
