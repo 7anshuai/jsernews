@@ -1,7 +1,8 @@
 const {pbkdf2} = require('crypto');
-const {karmaIncrementAmount, karmaIncrementInterval, PBKDF2Iterations, userCreationDelay, userInitialKarma} = require('./config')
+const {karmaIncrementAmount, karmaIncrementInterval, mailRelay, mailFrom, PBKDF2Iterations, userCreationDelay, userInitialKarma} = require('./config')
 const debug = require('debug')('jsernews:user');
 
+const {sendMail} = require('./mail');
 const $r = require('./redis');
 const {getRand, numElapsed} = require('./utils');
 
@@ -190,6 +191,19 @@ async function rateLimitByIP(delay, ...tags) {
   return false;
 }
 
+async function sendResetPasswordEmail(user, url){
+  if (!mailRelay || !mailFrom) return false;
+  let aux = url.split("/");
+  if (aux.length < 3) return false;
+  let current_domain = aux[0] + "//" + aux[2];
+
+  let reset_link = `${current_domain}/set-new-password?username=${encodeURIComponent(user.username)}&auth=${encodeURIComponent(user.auth)}`
+
+  let subject = `${aux[2]} password reset`;
+  let message = `You can reset your password here: ${reset_link}`;
+  return await sendMail(mailRelay, mailFrom, user.email, subject, message);
+}
+
 module.exports = {
   addFlags: addFlags,
   authUser: authUser,
@@ -203,5 +217,6 @@ module.exports = {
   hasFlags: hasFlags,
   isAdmin: isAdmin,
   incrementKarmaIfNeeded: incrementKarmaIfNeeded,
-  incrementUserKarmaBy: incrementUserKarmaBy
+  incrementUserKarmaBy: incrementUserKarmaBy,
+  sendResetPasswordEmail: sendResetPasswordEmail
 }

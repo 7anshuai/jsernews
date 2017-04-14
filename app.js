@@ -17,10 +17,10 @@ const HTMLGen = require('html5-gen');
 const _ = require('underscore');
 const debug = require('debug')('jsernews:app');
 
-const {keyboardNavigation, latestNewsPerPage, passwordMinLength, savedNewsPerPage, siteName, siteDescription, siteUrl, usernameRegexp} = require('./config');
-const {authUser, checkUserCredentials, createUser, getUserByUsername, hashPassword, incrementKarmaIfNeeded, isAdmin, updateAuthToken} = require('./user');
+const {keyboardNavigation, latestNewsPerPage, passwordMinLength, passwordResetDelay, savedNewsPerPage, siteName, siteDescription, siteUrl, usernameRegexp} = require('./config');
+const {authUser, checkUserCredentials, createUser, getUserById, getUserByUsername, hashPassword, incrementKarmaIfNeeded, isAdmin, sendResetPasswordEmail, updateAuthToken} = require('./user');
 const {computeNewsRank, computeNewsScore, getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, getPostedNews, getSavedNews, delNews, editNews, insertNews, voteNews, newsToHTML, newsListToHTML} = require('./news');
-const {checkParams, strElapsed} = require('./utils');
+const {checkParams, numElapsed, strElapsed} = require('./utils');
 const redis = require('./redis');
 const version = require('./package').version;
 
@@ -384,6 +384,56 @@ app.get('/logout', async (req, res) => {
   res.redirect('/');
 });
 
+app.get('/reset-password', (req, res, next) => {
+  $h.setTitle(`Reset Password - ${siteName}`);
+  $h.append($h.script('$(function() {$("form[name=f]").submit(reset_password);});'), 'body');
+  let html = $h.page(
+    $h.p('Welcome to the password reset procedure. Please specify the username and the email address you used to register to the site. ' + $h.br() +
+    $h.b('Note that if you did not specify an email it is impossible for you to recover your password.')) +
+    $h.div({id: 'login'},
+      $h.form({name: 'f'},
+        $h.label({for: 'username'}, 'username') +
+        $h.text({id: 'username', name:'username'}) +
+        $h.label({for: 'email'}, 'email') +
+        $h.text({id: 'email', name: 'email'}) +
+        $h.submit({name: 'do_reset', value: 'Reset password'})
+      )
+    ) + $h.div({id: 'errormsg'})
+  )
+
+  res.send(html);
+});
+
+app.get('/reset-password-ok', (req, res, next) => {
+  $h.setTitle('Reset link sent to your inbox');
+  res.send($h.page(
+    $h.p('We sent an email to your inbox with a link that will let you reset your password.') +
+    $h.p('Please make sure to check the spam folder if the email does not appear in your inbox in a few minutes.') +
+    $h.p('The email contains a link that will automatically log into your account where you can set a new password in the account preferences.')
+  ));
+});
+
+app.get('/set-new-password', async (req, res, next) => {
+  if(!checkParams(req.query, 'username', 'auth')) return res.redirect('/');
+
+  let {username, auth} = req.query;
+  let user = await getUserByUsername(username);
+  if (!user || user.auth != auth) return res.send($h.page($h.p('Link invalid or expired.')));
+
+  // Login the user and bring him to preferences to set a new password.
+  // Note that we update the auth token so this reset link will not
+  // work again.
+  await updateAuthToken(user.id);
+  user = await getUserById(user.id);
+  $h.append($h.script(`$(function() { document.cookie = 'auth=${user.auth}' +
+      '; expires=Thu, 1 Aug 2030 20:00:00 UTC; path=/';
+      window.location.href = '/user/${user.username}';
+      });`
+    ), 'body');
+   res.send($h.page());
+
+});
+
 // API implementation
 app.get('/api/login', async (req, res) => {
   let params = req.query;
@@ -423,6 +473,31 @@ app.post('/api/updateprofile', async (req, res) => {
     'email': email.substring(0, 255)
   });
   res.json({status: 'ok'});
+});
+
+app.get('/api/reset-password', async (req, res, next) => {
+  if (!checkParams(req.query, 'username', 'email')) return res.json({status: 'err', error: 'Username and email are two required fields.'});
+
+  let {username, email} = req.query;
+  let url = req.protocol + '://' + req.get('host') + req.originalUrl;
+  let user = await getUserByUsername(username);
+  if (user && user.email && user.email == email) {
+    let id = user.id;
+    // Rate limit password reset attempts.
+    if (user.pwd_reset && (numElapsed() - parseInt(user.pwd_reset)) < passwordResetDelay) {
+      return res.json({status: 'err', error: 'Sorry, not enough time elapsed since last password reset request.'});
+    }
+    if (await sendResetPasswordEmail(user, url)) {
+      // All fine, set the last password reset time to the current time
+      // for rate limiting purposes, and send the email with the reset
+      // link.
+      await $r.hset(`user:${id}`, 'pwd_reset', numElapsed());
+      return res.json({status: "ok"});
+    } else {
+      return res.json({status: 'err', error: 'Problem sending the email, please contact the site admin.'});
+    }
+  }
+  res.json({status: 'err', error: 'No match for the specified username / email pair.'})
 });
 
 app.post('/api/submit', async (req, res) => {
@@ -596,14 +671,6 @@ function applicationFooter() {
       });
   }) : '');
 }
-
-// Generic API limiting function
-// function rate_limit_by_ip(delay, *tags){
-//   let key = "limit:"+tags.join(".");
-//   if ($r.exists(key)) return true;
-//   $r.setex(key,delay,1);
-//   return false
-// }
 
 // Show list of items with show-more style pagination.
 //

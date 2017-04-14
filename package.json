@@ -31,6 +31,7 @@
     "ioredis": "^2.5.0",
     "morgan": "^1.7.0",
     "serve-favicon": "^2.3.0",
+    "smtp-protocol": "^2.4.7",
     "underscore": "^1.8.3"
   },
   "devDependencies": {
