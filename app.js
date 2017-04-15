@@ -19,7 +19,7 @@ const debug = require('debug')('jsernews:app');
 
 const {keyboardNavigation, latestNewsPerPage, passwordMinLength, passwordResetDelay, savedNewsPerPage, siteName, siteDescription, siteUrl, usernameRegexp} = require('./config');
 const {authUser, checkUserCredentials, createUser, getUserById, getUserByUsername, hashPassword, incrementKarmaIfNeeded, isAdmin, sendResetPasswordEmail, updateAuthToken} = require('./user');
-const {computeNewsRank, computeNewsScore, getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, getPostedNews, getSavedNews, delNews, editNews, insertNews, voteNews, newsToHTML, newsListToHTML} = require('./news');
+const {computeNewsRank, computeNewsScore, getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, getPostedNews, getSavedNews, delNews, editNews, insertNews, voteNews, newsToHTML, newsListToHTML, newsListToRSS} = require('./news');
 const {checkParams, numElapsed, strElapsed} = require('./utils');
 const redis = require('./redis');
 const version = require('./package').version;
@@ -96,6 +96,19 @@ app.get('/random', async (req, res) => {
   let random = 1 + _.random(parseInt(counter));
 
   res.redirect(await $r.exists(`news:${random}`) ? `/news/${random}` : `/news/${counter}`);
+});
+
+app.get('/rss', async (req, res, next) => {
+  let [news, numitems] = await getLatestNews();
+  let rss = $h.rss({version: '2.0', 'xmlns:atom': 'http://www.w3.org/2005/Atom'},
+    $h.channel(
+      $h.title(siteName) + ' ' +
+      `<link>${siteUrl}</link>` + ' ' +
+      $h.description('Description pending') + ' ' +
+      newsListToRSS(news)
+    )
+  );
+  res.send(rss);
 });
 
 app.get('/news/:news_id', async (req, res, next) => {

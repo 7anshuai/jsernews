@@ -1,7 +1,7 @@
 const _ = require('underscore');
 const debug = require('debug')('jsernews:news');
 
-const {commentMaxLength, newsEditTime, newsAgePadding, newsScoreLogStart, newsScoreLogBooster, newsSubmissionBreak, newsUpvoteMinKarma, newsDownvoteMinKarma, newsUpvoteKarmaCost, newsDownvoteKarmaCost, newsUpvoteKarmaTransfered, preventRepostTime, rankAgingFactor, siteUrl, topNewsAgeLimit, topNewsPerPage} = require('./config');
+const {commentMaxLength, newsEditTime, newsAgePadding, newsScoreLogStart, newsScoreLogBooster, newsSubmissionBreak, newsUpvoteMinKarma, newsDownvoteMinKarma, newsUpvoteKarmaCost, newsDownvoteKarmaCost, newsUpvoteKarmaTransfered, preventRepostTime, rankAgingFactor, siteUrl, topNewsAgeLimit, latestNewsPerPage, topNewsPerPage} = require('./config');
 const $r = require('./redis');
 const {getUserById, getUserKarma, incrementUserKarmaBy, isAdmin} = require('./user');
 const {numElapsed, strElapsed} = require('./utils');
@@ -347,6 +347,37 @@ function newsToHTML (news, opt) {
   });
 }
 
+// Turn the news into its RSS representation
+// This function expects as input a news entry as obtained from
+// the get_news_by_id function.
+function newsToRSS(news){
+  let $h = global.$h;
+  let domain = getNewsDomain(news);
+  news = Object.assign({}, news); // Copy the object so we can modify it as we wish.
+  news.ln_url = `${siteUrl}/news/${news.id}`;
+  if (!domain) news.url = news.ln_url;
+
+  return $h.item(() => {
+    return $h.title(
+      $h.entities(news.title)
+    ) + ' ' +
+    $h.guid(
+        $h.entities(news.url)
+    ) + ' ' +
+    '<link>' +
+        $h.entities(news.url) +
+    '</link>' + ' ' +
+    $h.description(
+        '<![CDATA[' +
+        $h.a({href: news.ln_url}, 'Comments') +
+        ']]>'
+    ) + ' ' +
+    $h.comments(
+        $h.entities(news.ln_url)
+    )
+  }) + '\n';
+}
+
 // If 'news' is a list of news entries (Ruby hashes with the same fields of
 // the Redis hash representing the news in the DB) this function will render
 // the HTML needed to show this news.
@@ -360,6 +391,16 @@ function newsListToHTML(news, opt) {
   });
 }
 
+// If 'news' is a list of news entries (Ruby hashes with the same fields of
+// the Redis hash representing the news in the DB) this function will render
+// the RSS needed to show this news.
+function newsListToRSS(news){
+  let aux = "";
+  for (let n of news) {
+    aux += newsToRSS(n);
+  }
+  return aux;
+}
 
 // Generate the main page of the web site, the one where news are ordered by
 // rank.
@@ -380,7 +421,7 @@ async function getTopNews(start=0, count=topNewsPerPage) {
 }
 
 // Get news in chronological order.
-async function getLatestNews(start, count){
+async function getLatestNews(start=0, count=latestNewsPerPage){
   let numitems = await $r.zcard('news.cron');
   let news_ids = await $r.zrevrange('news.cron', start, start + (count - 1));
   return [await getNewsById(news_ids), numitems];
@@ -415,5 +456,6 @@ module.exports = {
   insertNews: insertNews,
   voteNews: voteNews,
   newsToHTML: newsToHTML,
-  newsListToHTML: newsListToHTML
+  newsListToHTML: newsListToHTML,
+  newsListToRSS: newsListToRSS
 }
