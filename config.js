@@ -62,5 +62,5 @@ module.exports = {
   // Email service. Set MailRelay to false to disable this functionality
   // (this will prevent users from recovery accounts if the password gets lost).
   mailRelay: "localhost",
-  mailFrom: "noreply@example.com"
+  mailFrom: "noreply@jsernews.com"
 }

@@ -1,4 +1,3 @@
-const Readable = require('stream').Readable;
 const smtp = require('smtp-protocol');
 
 // Check if an email is valid, in a not very future-proof way.
@@ -49,30 +48,22 @@ async function sendMail(relay, from, to, subject, body, opt={}){
     header += "From: " + from;
   }
 
-
-  let message = `
-Subject: ${subject}
-
-${body}
-`;
-
   let status = true;
   let mails = []
   for (let m of to.split(',')) {
     if (m && isValidEmail(m)){
       let p = new Promise((resolve, reject) => {
         smtp.connect(relay, (mail) => {
-          let s = new Readable();
           mail.helo();
           mail.from(from);
           mail.to(m);
           mail.data();
-          s.push(message);
-          s.push(null);
-          s.pipe(mail.message((err, code, lines) => {
+          let message = mail.message((err, code, lines) => {
             if (err) return reject(err);
             resolve(code);
-          }));
+          });
+          message.write(`Subject: ${subject}\r\n\r\n`);
+          message.end(body);
         });
       });
       mails.push(p);
