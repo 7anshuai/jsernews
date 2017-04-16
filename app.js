@@ -4,7 +4,6 @@
 
 'use strict';
 
-const {createHash} = require('crypto');
 const path = require('path');
 const url = require('url');
 
@@ -20,7 +19,7 @@ const debug = require('debug')('jsernews:app');
 const {keyboardNavigation, latestNewsPerPage, passwordMinLength, passwordResetDelay, savedNewsPerPage, siteName, siteDescription, siteUrl, usernameRegexp} = require('./config');
 const {authUser, checkUserCredentials, createUser, getUserById, getUserByUsername, hashPassword, incrementKarmaIfNeeded, isAdmin, sendResetPasswordEmail, updateAuthToken} = require('./user');
 const {computeNewsRank, computeNewsScore, getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, getPostedNews, getSavedNews, delNews, editNews, insertNews, voteNews, newsToHTML, newsListToHTML, newsListToRSS} = require('./news');
-const {checkParams, numElapsed, strElapsed} = require('./utils');
+const {checkParams, hexdigest, numElapsed, strElapsed} = require('./utils');
 const redis = require('./redis');
 const version = require('./package').version;
 
@@ -203,7 +202,7 @@ app.get('/user/:username', async (req, res, next) => {
     $h.div({class: 'userinfo'}, () => {
       return $h.span({class: 'avatar'}, () => {
         let email = user.email || '';
-        let digest = createHash('md5').update(email).digest('hex');
+        let digest = hexdigest(email);
         return $h.img({src: `//gravatar.com/avatar/${digest}?s=48&d=mm`});
       }) + ' ' +
       $h.h2($h.entities(user.username)) +

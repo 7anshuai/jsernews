@@ -1,3 +1,4 @@
+const {createHash} = require('crypto');
 const fs = require('fs');
 const util = require('util');
 
@@ -30,6 +31,10 @@ async function getRand() {
     });
   });
   return await p;
+}
+
+function hexdigest(str, algorithm = 'md5') {
+  return createHash(algorithm).update(str).digest('hex');
 }
 
 // Return a Number representing the seconds elapsed since the UNIX epoch.
@@ -74,6 +79,7 @@ function spaceship(a, b) {
 module.exports = {
   checkParams: checkParams,
   getRand: getRand,
+  hexdigest: hexdigest,
   numElapsed: numElapsed,
   strElapsed: strElapsed,
   spaceship: spaceship
