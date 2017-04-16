@@ -362,18 +362,18 @@ function newsToRSS(news){
       $h.entities(news.title)
     ) + ' ' +
     $h.guid(
-        $h.entities(news.url)
+      $h.entities(news.url)
     ) + ' ' +
     '<link>' +
-        $h.entities(news.url) +
+      $h.entities(news.url) +
     '</link>' + ' ' +
     $h.description(
-        '<![CDATA[' +
-        $h.a({href: news.ln_url}, 'Comments') +
-        ']]>'
+      '<![CDATA[' +
+      $h.a({href: news.ln_url}, 'Comments') +
+      ']]>'
     ) + ' ' +
     $h.comments(
-        $h.entities(news.ln_url)
+      $h.entities(news.ln_url)
     )
   }) + '\n';
 }

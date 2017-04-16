@@ -16,6 +16,7 @@ const HTMLGen = require('html5-gen');
 const _ = require('underscore');
 const debug = require('debug')('jsernews:app');
 
+const {Comment, computeCommentScore, renderCommentsForNews} = require('./comments');
 const {keyboardNavigation, latestNewsPerPage, passwordMinLength, passwordResetDelay, savedNewsPerPage, siteName, siteDescription, siteUrl, usernameRegexp} = require('./config');
 const {authUser, checkUserCredentials, createUser, getUserById, getUserByUsername, hashPassword, incrementKarmaIfNeeded, isAdmin, sendResetPasswordEmail, updateAuthToken} = require('./user');
 const {computeNewsRank, computeNewsScore, getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, getPostedNews, getSavedNews, delNews, editNews, insertNews, voteNews, newsToHTML, newsListToHTML, newsListToRSS} = require('./news');
@@ -33,7 +34,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-let $h, $user, $r = redis;
+let $h, $user, $r = redis, comment;
 
 // before do block
 app.use(async (req, res, next) => {
@@ -55,6 +56,22 @@ app.use(async (req, res, next) => {
       (keyboardNavigation == 1 
         ? $h.script('setKeyboardNavigation();') : '');
   }, 'body');
+
+  if (!comment) comment = global.comment = new Comment($r, 'comment', (c, level) => {
+    return c.sort((a, b) => {
+      let ascore = computeCommentScore(a);
+      let bscore = computeCommentScore(b);
+      if (ascore == bscore) {
+        // If score is the same favor newer comments
+        return spaceship(+b.ctime, +a.ctime);
+      } else {
+        // If score is different order by score.
+        // FIXME: do something smarter favouring newest comments
+        // but only in the short time.
+        return spaceship(bscore, ascore);
+      }
+    });
+  });
 
   next();
 });
@@ -138,18 +155,19 @@ app.get('/news/:news_id', async (req, res, next) => {
   $h.setTitle(`${news.title} - ${siteName}`);
   let script = $h.script('$(function() {$("input[name=post_comment]").click(post_comment);});');
   $h.append(script, 'body');
-  let html = $h.page(() => {
-    return $h.section({id: 'newslist'}, newsToHTML(news)) + top_comment +
-      ($user && !news.del ?
-        $h.form({name: 'f'}, () => {
-          return $h.hidden({name: 'news_id', value: news.id}) +
-            $h.hidden({name: 'comment_id', value: -1}) +
-            $h.hidden({name: 'parent_id', value: -1}) +
-            $h.textarea({name: 'comment', cols: 60, rows: 10}) + $h.br() +
-            $h.button({name: 'post_comment', value: 'Send comment'});
-        }) + $h.div({id: 'errormsg'}) :
-        $h.br()); // render_comments_for_news(news["id"])
-  });
+
+  let html = $h.page(
+    $h.section({id: 'newslist'}, newsToHTML(news)) + top_comment +
+    ($user && !news.del ?
+      $h.form({name: 'f'}, () => {
+        return $h.hidden({name: 'news_id', value: news.id}) +
+          $h.hidden({name: 'comment_id', value: -1}) +
+          $h.hidden({name: 'parent_id', value: -1}) +
+          $h.textarea({name: 'comment', cols: 60, rows: 10}) + $h.br() +
+          $h.button({name: 'post_comment', value: 'Send comment'});
+      }) + $h.div({id: 'errormsg'}) :
+    $h.br()) + await renderCommentsForNews(news.id)
+  );
 
   res.send(html);
 });
