@@ -155,6 +155,21 @@ function commentToHtml (c, u, show_parent = false) {
   });
 }
 
+// Get comments in chronological order for the specified user in the
+// specified range.
+async function getUserComments (user_id, start, count){
+  let $r = global.comment.r;
+  let numitems = + await $r.zcard(`user.comments:${user_id}`);
+  let ids = await $r.zrevrange(`user.comments:${user_id}`, start, start + (count - 1));
+  let comments = [];
+  for (let id of ids) {
+    let [news_id, comment_id] = id.split('-');
+    let comment = await global.comment.fetch(news_id, comment_id);
+    if (comment) comments.push(comment);
+  }
+  return [comments, numitems];
+}
+
 async function renderCommentsForNews(news_id, root = -1) {
   let comment = global.comment;
   let $h = global.$h;
@@ -167,6 +182,13 @@ async function renderCommentsForNews(news_id, root = -1) {
     html += commentToHtml(c, u);
   });
   return $h.div({'id': 'comments'}, html);
+}
+
+async function renderCommentSubthread(comment, sep=''){
+  let $h = global.$h;
+  let u = await getUserById(comment.user_id) || deletedUser;
+  return $h.div({class: "singlecomment"}, commentToHtml(comment, u, true)) +
+    $h.div({class: "commentreplies"}, sep + await renderCommentsForNews(comment.thread_id, + comment.id));
 }
 
 // Given a string returns the same string with all the urls converted into
@@ -191,6 +213,8 @@ module.exports = {
   Comment: Comment,
   commentToHtml: commentToHtml,
   computeCommentScore: computeCommentScore,
+  getUserComments: getUserComments,
   renderCommentsForNews: renderCommentsForNews,
+  renderCommentSubthread: renderCommentSubthread,
   urlsToLinks: urlsToLinks
 };

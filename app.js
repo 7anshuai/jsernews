@@ -16,8 +16,8 @@ const HTMLGen = require('html5-gen');
 const _ = require('underscore');
 const debug = require('debug')('jsernews:app');
 
-const {Comment, commentToHtml, computeCommentScore, renderCommentsForNews} = require('./comments');
-const {keyboardNavigation, latestNewsPerPage, passwordMinLength, passwordResetDelay, savedNewsPerPage, siteName, siteDescription, siteUrl, usernameRegexp} = require('./config');
+const {Comment, commentToHtml, computeCommentScore, getUserComments, renderCommentsForNews, renderCommentSubthread} = require('./comments');
+const {keyboardNavigation, latestNewsPerPage, passwordMinLength, passwordResetDelay, savedNewsPerPage, siteName, siteDescription, siteUrl, subthreadsInRepliesPage, userCommentsPerPage, usernameRegexp} = require('./config');
 const {authUser, checkUserCredentials, createUser, getUserById, getUserByUsername, hashPassword, incrementKarmaIfNeeded, isAdmin, sendResetPasswordEmail, updateAuthToken} = require('./user');
 const {computeNewsRank, computeNewsScore, getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, getPostedNews, getSavedNews, delNews, editNews, insertNews, voteNews, newsToHTML, newsListToHTML, newsListToRSS} = require('./news');
 const {checkParams, hexdigest, numElapsed, strElapsed} = require('./utils');
@@ -112,6 +112,24 @@ app.get('/random', async (req, res) => {
   let random = 1 + _.random(parseInt(counter));
 
   res.redirect(await $r.exists(`news:${random}`) ? `/news/${random}` : `/news/${counter}`);
+});
+
+app.get('/replies', async (req, res, next) => {
+  if (!$user) return res.redirect('/login');
+  let [comments, count] = await getUserComments($user.id, 0, subthreadsInRepliesPage);
+  $h.setTitle(`Your threads - ${siteName}`);
+  let html = $h.page(
+    $h.h2('Your threads') +
+    $h.div({id: 'comments'}, await (async () => {
+      let aux = '';
+      for (let c of comments) {
+        aux += await renderCommentSubthread(c);
+      }
+      await $r.hset(`user:${$user.id}`, 'replies', 0);
+      return aux;
+    })())
+  );
+  res.send(html);
 });
 
 app.get('/rss', async (req, res, next) => {
@@ -294,6 +312,31 @@ app.get('/saved/:start', async (req, res, next) => {
     return $h.h2('You saved News') +
       $h.section({id: 'newslist'}, newslist);
   }));
+});
+
+app.get('/usercomments/:username/:start', async (req, res, next) => {
+  let start = + req.params.start;
+  let user = await getUserByUsername(req.params.username);
+  if (typeof start != 'number' || isNaN(start)) return next();
+  if (!user) return res.status(404).send('Non existing user');
+
+  $h.setTitle(`${user.username} comments - ${siteName}`);
+  let paginate = {
+    get: async (start, count) => {
+      return await getUserComments(user.id, start, count);
+    },
+    render: async (comment) => {
+      let u = await getUserById(comment.user_id) || deletedUser;
+      return commentToHtml(comment, u);
+    },
+    start: start,
+    perpage: userCommentsPerPage,
+    link: `/usercomments/${$h.entities(user.username)}/$`
+  }
+  res.send($h.page(
+    $h.h2(`${$h.entities(user.username)} comments`) +
+    $h.div({id: 'comments'}, await listItems(paginate))
+  ));
 });
 
 app.get('/about', (req, res, next) => {
@@ -726,9 +769,9 @@ async function listItems(o){
   if (o.start < 0) o.start = 0;
   let [items, count] = await o.get.call(o, o.start, o.perpage);
 
-  items.forEach((n) => {
-    aux += o.render.call(o, n);
-  })
+  for (let n of items) {
+    aux += await o.render.call(o, n);
+  }
 
   let last_displayed = parseInt(o.start + o.perpage);
   if (last_displayed < count) {
