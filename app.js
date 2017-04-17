@@ -16,7 +16,7 @@ const HTMLGen = require('html5-gen');
 const _ = require('underscore');
 const debug = require('debug')('jsernews:app');
 
-const {Comment, computeCommentScore, renderCommentsForNews} = require('./comments');
+const {Comment, commentToHtml, computeCommentScore, renderCommentsForNews} = require('./comments');
 const {keyboardNavigation, latestNewsPerPage, passwordMinLength, passwordResetDelay, savedNewsPerPage, siteName, siteDescription, siteUrl, usernameRegexp} = require('./config');
 const {authUser, checkUserCredentials, createUser, getUserById, getUserByUsername, hashPassword, incrementKarmaIfNeeded, isAdmin, sendResetPasswordEmail, updateAuthToken} = require('./user');
 const {computeNewsRank, computeNewsScore, getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, getPostedNews, getSavedNews, delNews, editNews, insertNews, voteNews, newsToHTML, newsListToHTML, newsListToRSS} = require('./news');
@@ -124,7 +124,7 @@ app.get('/rss', async (req, res, next) => {
       newsListToRSS(news)
     )
   );
-  res.send(rss);
+  res.type('rss').send(rss);
 });
 
 app.get('/news/:news_id', async (req, res, next) => {
@@ -146,8 +146,8 @@ app.get('/news/:news_id', async (req, res, next) => {
         thread_id: news.id,
         topcomment: true
     }
-    // user = get_user_by_id(news["user_id"]) || DeletedUser
-    // top_comment = $h.topcomment {comment_to_html(c,user)}
+    user = await getUserById(news.user_id) || deletedUser;
+    top_comment = $h.div({class: 'topcomment'}, (commentToHtml(c, user)));
   } else {
     top_comment = "";
   }

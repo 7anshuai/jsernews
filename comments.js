@@ -106,7 +106,7 @@ function computeCommentScore(c) {
 // 'show_parent' flag to show link to parent comment.
 function commentToHtml (c, u, show_parent = false) {
   let $h = global.$h;
-  let indent = `margin-left:${(+ c.level) * commentReplyShift}px`;
+  let indent = c.level ? `margin-left:${(+ c.level) * commentReplyShift}px` : '';
   let score = computeCommentScore(c);
   let news_id = c.thread_id;
 
@@ -117,7 +117,7 @@ function commentToHtml (c, u, show_parent = false) {
       ($user && (+$user.id == +c.user_id)) &&
       (+c.ctime > (numElapsed() - commentEditTime));
 
-  let comment_id = `${news_id}-${c.id}`;
+  let comment_id = c.id ? `${news_id}-${c.id}` : '';
   return $h.article({class: 'comment', style: indent, 'data-comment-id': comment_id, id: comment_id}, () => {
     return $h.span({class: "avatar"}, () => {
       let email = u.email || "";
@@ -189,6 +189,7 @@ function urlsToLinks(s) {
 
 module.exports = {
   Comment: Comment,
+  commentToHtml: commentToHtml,
   computeCommentScore: computeCommentScore,
   renderCommentsForNews: renderCommentsForNews,
   urlsToLinks: urlsToLinks

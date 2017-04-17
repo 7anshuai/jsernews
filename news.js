@@ -133,8 +133,8 @@ function getNewsDomain(news){
 // Assuming the news has an url in the form text:// returns the text
 // inside. Otherwise nil is returned.
 function getNewsText(news){
-  let su = news["url"].split("/");
-  return (su[0] == "text:") ? news["url"].substring(7, -1) : null;
+  let su = news.url.split('/');
+  return (su[0] == 'text:') ? news.url.substring(7, news.url.length - 1) : null;
 }
 
 // Mark an existing news as removed.
