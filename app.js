@@ -339,6 +339,43 @@ app.get('/usercomments/:username/:start', async (req, res, next) => {
   ));
 });
 
+app.get('/comment/:news_id/:comment_id', async (req, res, next) => {
+  let {news_id, comment_id} = req.params;
+  let news = await getNewsById(news_id);
+  if (!news) return res.status(404).send('404 - This news does not exist.');
+  let comment = await global.comment.fetch(news_id, comment_id);
+  if (!comment) return res.status(404).send('404 - This comment does not exist.');
+  $h.setTitle(`${news.title} - ${siteName}`);
+  res.send($h.page(
+      $h.section({id: 'newslist'}, newsToHTML(news)) +
+      await renderCommentSubthread(comment, $h.h4('Replies'))
+  ));
+});
+
+app.get("/reply/:news_id/:comment_id", async (req, res, next) => {
+  if (!$user) return res.redirect('/login');
+  let {news_id, comment_id} = req.params;
+  let news = await getNewsById(news_id);
+  if (!news) return res.status(404).send('404 - This news does not exist.');
+  let comment = await global.comment.fetch(news_id, comment_id);
+  if(!comment) res.status(404).send('404 - This comment does not exist.');
+  let user = await getUserById(comment.user_id) || deletedUser;
+
+  $h.setTitle(`Reply to comment - ${siteName}`);
+  $h.append($h.script('$(function() {$("input[name=post_comment]").click(post_comment);});'), 'body');
+  res.send($h.page(
+    newsToHTML(news) +
+    commentToHtml(comment, user) +
+    $h.form({name: 'f'},
+      $h.hidden({name: 'news_id', value: news.id})+
+      $h.hidden({name: 'comment_id', value: -1})+
+      $h.hidden({name: 'parent_id', value: comment_id})+
+      $h.textarea({name: 'comment', cols: 60, rows: 10}) + $h.br() +
+      $h.button({name: 'post_comment', value: 'Reply'})
+    ) + $h.div({id: 'errormsg'})
+  ));
+})
+
 app.get('/about', (req, res, next) => {
   $h.setTitle(`About - ${siteName}`);
   res.send($h.page(
@@ -404,7 +441,7 @@ app.get('/submit', (req, res) => {
   let {t, u} = req.query;
   if (!$user) return res.redirect('/login');
   $h.setTitle(`Submit a new story - ${siteName}`);
-  $h.append($h.script('$(function() {$("input[name=do_submit]").click(submit);});'), 'body');
+  $h.append($h.script('$(function() {$("input[name=do_submit]").click(submit);$("#text").css("max-width", `${window.screen.width-34}px`)});'), 'body');
   res.send($h.page(
     $h.h2('Submit a new story') +
     $h.div({id: 'submitform'},
