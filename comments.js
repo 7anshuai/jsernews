@@ -106,7 +106,6 @@ function computeCommentScore(c) {
 // 'u' is the user, obtained from the user_id by the caller.
 // 'show_parent' flag to show link to parent comment.
 function commentToHtml (c, u, show_parent = false) {
-  let $h = global.$h;
   let indent = c.level ? `margin-left:${(+ c.level) * commentReplyShift}px` : '';
   let score = computeCommentScore(c);
   let news_id = c.thread_id;
@@ -264,8 +263,6 @@ async function voteComment(news_id, comment_id, user_id, vote_type) {
 }
 
 async function renderCommentsForNews(news_id, root = -1) {
-  let comment = global.comment;
-  let $h = global.$h;
   let html = '';
   let user = {};
   await comment.renderComments(news_id, root, async (c) => {
@@ -278,7 +275,6 @@ async function renderCommentsForNews(news_id, root = -1) {
 }
 
 async function renderCommentSubthread(comment, sep=''){
-  let $h = global.$h;
   let u = await getUserById(comment.user_id) || deletedUser;
   let comments = await renderCommentsForNews(comment.thread_id, + comment.id);
   return $h.div({class: "singlecomment"}, commentToHtml(comment, u, true)) + (comments ?

@@ -2,7 +2,6 @@ const _ = require('underscore');
 const debug = require('debug')('jsernews:news');
 
 const {commentMaxLength, newsEditTime, newsAgePadding, newsScoreLogStart, newsScoreLogBooster, newsSubmissionBreak, newsUpvoteMinKarma, newsDownvoteMinKarma, newsUpvoteKarmaCost, newsDownvoteKarmaCost, newsUpvoteKarmaTransfered, preventRepostTime, rankAgingFactor, siteUrl, topNewsAgeLimit, latestNewsPerPage, topNewsPerPage} = require('./config');
-const $r = require('./redis');
 const {getUserById, getUserKarma, incrementUserKarmaBy, isAdmin} = require('./user');
 const {numElapsed, strElapsed} = require('./utils');
 
@@ -15,7 +14,6 @@ const {numElapsed, strElapsed} = require('./utils');
 // Doing this in a centralized way offers us the ability to exploit
 // Redis pipelining.
 async function getNewsById(news_ids, opt={}) {
-  let $user = global.$user;
   let result = [];
   if (!_.isArray(news_ids)) {
     opt['single'] = true;
@@ -139,7 +137,6 @@ function getNewsText(news){
 
 // Mark an existing news as removed.
 async function delNews(news_id, user_id){
-  let $user = global.$user;
   let news = await getNewsById(news_id);
   if (!news || parseInt(news.user_id) != parseInt(user_id) && !isAdmin($user)) return false;
   if (!(parseInt(news.ctime) > (numElapsed() - newsEditTime)) && !isAdmin($user)) return false;
@@ -157,7 +154,6 @@ async function delNews(news_id, user_id){
 // On failure (for instance news_id does not exist or does not match
 //             the specified user_id) false is returned.
 async function editNews(news_id, title, url, text, user_id){
-  let $user = global.$user;
   let news = await getNewsById(news_id);
   if (!news || parseInt(news.user_id) != parseInt(user_id) && !isAdmin($user)) return false;
   if (!(parseInt(news.ctime) > (numElapsed() - newsEditTime)) && !isAdmin($user)) return false;
@@ -255,7 +251,6 @@ async function insertNews(title, url, text, user_id){
 // error that prevented the vote.
 async function voteNews(news_id, user_id, vote_type){
   // Fetch news and user
-  let $user = global.$user;
   let user = ($user && $user.id == user_id) ? $user : await getUserById(user_id);
   let news = await getNewsById(news_id);
   if (!news || !user) return [false, 'No such news or user.'];
@@ -312,8 +307,6 @@ async function voteNews(news_id, user_id, vote_type){
 // This function expects as input a news entry as obtained from
 // the get_news_by_id function.
 function newsToHTML (news, opt) {
-  let $h = global.$h,
-    $user = global.$user;
   if (news.del) return $h.article({class: 'deleted'}, '[deleted news]');
   let domain = getNewsDomain(news);
   news = Object.assign({}, news); // Copy the object so we can modify it as we wish.
@@ -351,7 +344,6 @@ function newsToHTML (news, opt) {
 // This function expects as input a news entry as obtained from
 // the get_news_by_id function.
 function newsToRSS(news){
-  let $h = global.$h;
   let domain = getNewsDomain(news);
   news = Object.assign({}, news); // Copy the object so we can modify it as we wish.
   news.ln_url = `${siteUrl}/news/${news.id}`;
@@ -382,7 +374,7 @@ function newsToRSS(news){
 // the Redis hash representing the news in the DB) this function will render
 // the HTML needed to show this news.
 function newsListToHTML(news, opt) {
-  return global.$h.section({id: 'newslist'}, () => {
+  return $h.section({id: 'newslist'}, () => {
     let aux = '';
     news.forEach((n) => {
       aux += newsToHTML(n, opt);

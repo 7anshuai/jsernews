@@ -21,7 +21,7 @@ const {keyboardNavigation, latestNewsPerPage, passwordMinLength, passwordResetDe
 const {authUser, checkUserCredentials, createUser, getUserById, getUserByUsername, hashPassword, incrementKarmaIfNeeded, isAdmin, sendResetPasswordEmail, updateAuthToken} = require('./user');
 const {computeNewsRank, computeNewsScore, getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, getPostedNews, getSavedNews, delNews, editNews, insertNews, voteNews, newsToHTML, newsListToHTML, newsListToRSS} = require('./news');
 const {checkParams, hexdigest, numElapsed, strElapsed} = require('./utils');
-const redis = require('./redis');
+global.$r = require('./redis');
 const version = require('./package').version;
 
 const app = express();
@@ -34,15 +34,13 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-let $h, $user, $r = redis, comment;
-
 // before do block
 app.use(async (req, res, next) => {
 
-  $user = global.$user = await authUser(req.cookies.auth);
+  global.$user = await authUser(req.cookies.auth);
   if ($user) await incrementKarmaIfNeeded();
 
-  $h = global.$h = new HTMLGen();
+  global.$h = new HTMLGen();
   $h.append(() => {
     return $h.link({href: '/css/style.css?v0.0.1', rel: 'stylesheet'}) +
       $h.link({href: '/favicon.ico', rel: 'shortcut icon'});
@@ -57,7 +55,7 @@ app.use(async (req, res, next) => {
         ? $h.script('setKeyboardNavigation();') : '');
   }, 'body');
 
-  if (!comment) comment = global.comment = new Comment($r, 'comment', (c, level) => {
+  if (!global.comment) global.comment = new Comment($r, 'comment', (c, level) => {
     return c.sort((a, b) => {
       let ascore = computeCommentScore(a);
       let bscore = computeCommentScore(b);

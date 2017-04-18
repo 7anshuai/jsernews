@@ -90,7 +90,6 @@ async function createUser(username, password, opt){
 //
 // Side effects: the user karma is incremented and the $user hash updated.
 async function incrementKarmaIfNeeded(){
-  let $user = global.$user;
   if ((+ $user['karma_incr_time']) < (numElapsed() - karmaIncrementInterval)){
     let userkey = `user:${$user.id}`;
     await $r.hset(userkey, 'karma_incr_time', numElapsed());
@@ -101,7 +100,6 @@ async function incrementKarmaIfNeeded(){
 // Increment the user karma by the specified amount and make sure to
 // update $user to reflect the change if it is the same user id.
 async function incrementUserKarmaBy(user_id, increment){
-  let $user = global.$user;
   let userkey = `user:${user_id}`;
   await $r.hincrby(userkey, 'karma', increment);
   if ($user && ($user.id == user_id))
@@ -110,7 +108,6 @@ async function incrementUserKarmaBy(user_id, increment){
 
 // Return the specified user karma.
 async function getUserKarma(user_id){
-  let $user = global.$user;
   if ($user && (user_id == $user.id)) return $user.karma;
   let userkey = `user:${user_id}`;
   let karma = await $r.hget(userkey, 'karma');
