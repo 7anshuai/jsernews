@@ -1,4 +1,5 @@
 const {commentEditTime, commentReplyShift, deleteUser} = require('./config');
+const {getNewsById} = require('./news');
 const {getUserById} = require('./user');
 const {hexdigest, numElapsed, strElapsed} = require('./utils');
 
@@ -30,17 +31,17 @@ class Comment {
       let parent = await this.r.hget(key, comment.parent_id);
       if (!parent) return false;
     }
-    let id = this.r.hincrby(key, 'nextid', 1);
-    await this.r.hset(key, id, comment);
+    let id = await this.r.hincrby(key, 'nextid', 1);
+    await this.r.hset(key, id, JSON.stringify(comment));
     return + id;
   }
 
   async edit(thread_id, comment_id, updates) {
     let key = this.threadKey(thread_id);
-    let old = this.r.hget(key, comment_id);
+    let old = await this.r.hget(key, comment_id);
     if (!old) return false;
     let comment = Object.assign(JSON.parse(old), updates);
-    await this.r.hset(key, comment_id, comment);
+    await this.r.hset(key, comment_id, JSON.stringify(comment));
     return true;
   }
 
@@ -52,7 +53,7 @@ class Comment {
     return (parseInt(await this.r.hlen(this.threadKey(thread_id))) - 1);
   }
 
-  async delComment(thread_id) {
+  async delComment(thread_id, comment_id) {
     return await this.edit(thread_id, comment_id, {del: 1});
   }
 
@@ -170,6 +171,89 @@ async function getUserComments (user_id, start, count){
   return [comments, numitems];
 }
 
+// This function has different behaviors, depending on the arguments:
+//
+// 1) If comment_id is -1 insert a new comment into the specified news.
+// 2) If comment_id is an already existing comment in the context of the
+//    specified news, updates the comment.
+// 3) If comment_id is an already existing comment in the context of the
+//    specified news, but the comment is an empty string, delete the comment.
+//
+// Return value:
+//
+// If news_id does not exist or comment_id is not -1 but neither a valid
+// comment for that news, nil is returned.
+// Otherwise an hash is returned with the following fields:
+//   news_id: the news id
+//   comment_id: the updated comment id, or the new comment id
+//   op: the operation performed: "insert", "update", or "delete"
+//
+// More informations:
+//
+// The parent_id is only used for inserts (when comment_id == -1), otherwise
+// is ignored.
+async function insertComment(news_id, user_id, comment_id, parent_id, body){
+  let p, $r = global.comment.r;
+  let news = await getNewsById(news_id);
+  if (!news) return false;
+  if (comment_id == -1) {
+    if (+parent_id != -1) {
+      p = await global.comment.fetch(news_id, parent_id);
+      if (!p) return false;
+    }
+    let comment = {
+      score: 0,
+      body: body,
+      parent_id: parent_id,
+      user_id: user_id,
+      ctime: numElapsed(),
+      up: [+user_id]
+    }
+    comment_id = await global.comment.insert(news_id, comment);
+    if (!comment_id) return false;
+    await $r.hincrby(`news:${news_id}`, 'comments', 1);
+    await $r.zadd(`user.comments:${user_id}`,
+      numElapsed(),
+      news_id + "-" + comment_id);
+    // increment_user_karma_by(user_id,KarmaIncrementComment)
+    if (p && await $r.exists(`user:${p.user_id}`))
+      await $r.hincrby(`user:${p.user_id}`, 'replies', 1);
+
+    return {
+      news_id: news_id,
+      comment_id: comment_id,
+      op: "insert"
+    }
+  }
+
+  // If we reached this point the next step is either to update or
+  // delete the comment. So we make sure the user_id of the request
+  // matches the user_id of the comment.
+  // We also make sure the user is in time for an edit operation.
+  let c = await global.comment.fetch(news_id, comment_id);
+  if (!c || +c.user_id != +user_id) return false;
+  if (!(+c.ctime > (numElapsed() - commentEditTime))) return false;
+
+  if (body.length == 0) {
+    if (!await global.comment.delComment(news_id, comment_id)) return false;
+    await $r.hincrby(`news:${news_id}`, 'comments', -1);
+    return {
+      news_id: news_id,
+      comment_id: comment_id,
+      op: "delete"
+    };
+  } else {
+    let update = {body: body};
+    if (+c.del == 1) update = {del: 0};
+    if (!await global.comment.edit(news_id, comment_id, update)) return false;
+    return {
+      news_id: news_id,
+      comment_id: comment_id,
+      op: 'update'
+    };
+  }
+}
+
 async function renderCommentsForNews(news_id, root = -1) {
   let comment = global.comment;
   let $h = global.$h;
@@ -181,14 +265,15 @@ async function renderCommentsForNews(news_id, root = -1) {
     let u = user[c.id];
     html += commentToHtml(c, u);
   });
-  return $h.div({'id': 'comments'}, html);
+  return html ? $h.div({'id': 'comments'}, html) : '';
 }
 
 async function renderCommentSubthread(comment, sep=''){
   let $h = global.$h;
   let u = await getUserById(comment.user_id) || deletedUser;
-  return $h.div({class: "singlecomment"}, commentToHtml(comment, u, true)) +
-    $h.div({class: "commentreplies"}, sep + await renderCommentsForNews(comment.thread_id, + comment.id));
+  let comments = await renderCommentsForNews(comment.thread_id, + comment.id);
+  return $h.div({class: "singlecomment"}, commentToHtml(comment, u, true)) + (comments ?
+    $h.div({class: "commentreplies"}, sep + comments) : '');
 }
 
 // Given a string returns the same string with all the urls converted into
@@ -214,6 +299,7 @@ module.exports = {
   commentToHtml: commentToHtml,
   computeCommentScore: computeCommentScore,
   getUserComments: getUserComments,
+  insertComment: insertComment,
   renderCommentsForNews: renderCommentsForNews,
   renderCommentSubthread: renderCommentSubthread,
   urlsToLinks: urlsToLinks

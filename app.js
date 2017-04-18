@@ -16,7 +16,7 @@ const HTMLGen = require('html5-gen');
 const _ = require('underscore');
 const debug = require('debug')('jsernews:app');
 
-const {Comment, commentToHtml, computeCommentScore, getUserComments, renderCommentsForNews, renderCommentSubthread} = require('./comments');
+const {Comment, commentToHtml, computeCommentScore, getUserComments, insertComment, renderCommentsForNews, renderCommentSubthread} = require('./comments');
 const {keyboardNavigation, latestNewsPerPage, passwordMinLength, passwordResetDelay, savedNewsPerPage, siteName, siteDescription, siteUrl, subthreadsInRepliesPage, userCommentsPerPage, usernameRegexp} = require('./config');
 const {authUser, checkUserCredentials, createUser, getUserById, getUserByUsername, hashPassword, incrementKarmaIfNeeded, isAdmin, sendResetPasswordEmail, updateAuthToken} = require('./user');
 const {computeNewsRank, computeNewsScore, getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, getPostedNews, getSavedNews, delNews, editNews, insertNews, voteNews, newsToHTML, newsListToHTML, newsListToRSS} = require('./news');
@@ -696,6 +696,34 @@ app.post('/api/votenews', async (req, res, next) => {
   let [rank, error] = await voteNews(parseInt(news_id), $user.id, vote_type);
   if (rank) return res.json({status: 'ok'});
   res.json({status: 'err', error: error});
+});
+
+app.post('/api/postcomment', async (req, res, next) => {
+  if (!$user) return res.json({status: 'err', error: 'Not authenticated.'});
+  if (!req.body.apisecret) return res.json({status: 'err', error: 'Wrong form secret.'});
+
+  // Params sanity check
+  if (!checkParams(req.body, 'news_id', 'comment_id', 'parent_id')) {
+    return res.json({
+      status: 'err',
+      error: 'Missing news_id, comment_id, parent_id, or comment parameter.'
+    });
+  }
+
+  let {news_id, comment_id, parent_id, comment} = req.body;
+  let info = await insertComment(+news_id, $user.id, +comment_id, +parent_id, comment);
+  if (!info) return res.json({
+      status: 'err',
+      error: 'Invalid news, comment, or edit time expired.'
+    });
+
+  res.json({
+    status: 'ok',
+    op: info.op,
+    comment_id: info.comment_id,
+    parent_id: parent_id,
+    news_id: news_id
+  });
 });
 
 // catch 404 and forward to error handler
