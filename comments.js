@@ -135,10 +135,10 @@ function commentToHtml (c, u, show_parent = false) {
         (!c.topcomment ? (() => {
           let upclass = 'uparrow';
           let downclass = 'downarrow';
-          if ($user && c.up && c.up.indexOf(+$user.id)) {
+          if ($user && c.up && c.up.includes(+$user.id)) {
             upclass += ' voted';
             downclass += ' disabled';
-          } else if ($user && c.down && c.down.indexOf(+$user.id)) {
+          } else if ($user && c.down && c.down.includes(+$user.id)) {
             downclass += ' voted';
             upclass += ' disabled';
           }
@@ -254,6 +254,15 @@ async function insertComment(news_id, user_id, comment_id, parent_id, body){
   }
 }
 
+async function voteComment(news_id, comment_id, user_id, vote_type) {
+  let comment = await global.comment.fetch(news_id, comment_id);
+  if (!comment) return false;
+  let varray = comment[vote_type] || [];
+  if (varray.includes(user_id)) return false;
+  varray.push(user_id);
+  return await global.comment.edit(news_id, comment_id, {[vote_type]: varray});
+}
+
 async function renderCommentsForNews(news_id, root = -1) {
   let comment = global.comment;
   let $h = global.$h;
@@ -300,6 +309,7 @@ module.exports = {
   computeCommentScore: computeCommentScore,
   getUserComments: getUserComments,
   insertComment: insertComment,
+  voteComment: voteComment,
   renderCommentsForNews: renderCommentsForNews,
   renderCommentSubthread: renderCommentSubthread,
   urlsToLinks: urlsToLinks

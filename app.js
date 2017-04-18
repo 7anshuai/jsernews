@@ -16,7 +16,7 @@ const HTMLGen = require('html5-gen');
 const _ = require('underscore');
 const debug = require('debug')('jsernews:app');
 
-const {Comment, commentToHtml, computeCommentScore, getUserComments, insertComment, renderCommentsForNews, renderCommentSubthread} = require('./comments');
+const {Comment, commentToHtml, computeCommentScore, getUserComments, insertComment, voteComment, renderCommentsForNews, renderCommentSubthread} = require('./comments');
 const {keyboardNavigation, latestNewsPerPage, passwordMinLength, passwordResetDelay, savedNewsPerPage, siteName, siteDescription, siteUrl, subthreadsInRepliesPage, userCommentsPerPage, usernameRegexp} = require('./config');
 const {authUser, checkUserCredentials, createUser, getUserById, getUserByUsername, hashPassword, incrementKarmaIfNeeded, isAdmin, sendResetPasswordEmail, updateAuthToken} = require('./user');
 const {computeNewsRank, computeNewsScore, getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, getPostedNews, getSavedNews, delNews, editNews, insertNews, voteNews, newsToHTML, newsListToHTML, newsListToRSS} = require('./news');
@@ -724,6 +724,20 @@ app.post('/api/postcomment', async (req, res, next) => {
     parent_id: parent_id,
     news_id: news_id
   });
+});
+
+app.post('/api/votecomment', async (req, res, next) => {
+  if (!$user) return res.json({status: 'err', error: 'Not authenticated.'});
+  if (!req.body.apisecret) return res.json({status: 'err', error: 'Wrong form secret.'});
+  if (!checkParams(req.body, 'comment_id', 'vote_type') ||
+    (req.body.vote_type != 'up' && req.body.vote_type != 'down'))
+    return res.json({status: 'err', error: 'Missing comment ID or invalid vote type.'});
+  let {vote_type} = req.body;
+  let [news_id, comment_id] = req.body.comment_id.split('-');
+  if (await voteComment(+news_id, +comment_id, +$user.id, vote_type))
+    return res.json({status: 'ok', comment_id: req.body.comment_id});
+
+  res.json({status: 'err', error: 'Invalid parameters or duplicated vote.' });
 });
 
 // catch 404 and forward to error handler
