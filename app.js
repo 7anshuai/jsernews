@@ -374,7 +374,36 @@ app.get("/reply/:news_id/:comment_id", async (req, res, next) => {
       $h.button({name: 'post_comment', value: 'Reply'})
     ) + $h.div({id: 'errormsg'})
   ));
-})
+});
+
+app.get('/editcomment/:news_id/:comment_id', async (req, res, next) => {
+  if (!$user) return res.redirect('/login');
+
+  let {news_id, comment_id} = req.params;
+  let news = await getNewsById(news_id);
+  if (!news) return res.status(404).send('404 - This news does not exist.');
+
+  let comment = await global.comment.fetch(news_id, comment_id);
+  if (!comment) return res.status(404).send('404 - This news does not exist.');
+
+  let user = await getUserById(comment.user_id) || deletedUser;
+  if (+$user.id != +user.id) return res.status(500).send('Permission denied.');
+
+  $h.setTitle(`Edit comment - ${siteName}`);
+  $h.append($h.script('$(function() {$("input[name=post_comment]").click(post_comment);});'), 'body');
+  res.send($h.page(
+    newsToHTML(news) +
+    commentToHtml(comment, user) +
+    $h.form({name: 'f'},
+      $h.hidden({name: 'news_id', value: news.id}) +
+      $h.hidden({name: 'comment_id',value: comment_id})+
+      $h.hidden({name: 'parent_id', value: -1})+
+      $h.textarea({name: 'comment', cols: 60, rows: 10}, $h.entities(comment.body)) + $h.br() +
+      $h.button({name: 'post_comment', value: 'Edit'})
+    ) + $h.div({id: 'errormsg'}) +
+    $h.div({class: 'note'}, 'Note: to remove the comment, remove all the text and press Edit.')
+  ));
+});
 
 app.get('/about', (req, res, next) => {
   $h.setTitle(`About - ${siteName}`);

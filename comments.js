@@ -148,7 +148,7 @@ function commentToHtml (c, u, show_parent = false) {
         (show_edit_link ?
           $h.a({href: `/editcomment/${news_id}/${c.id}`, class: 'reply'}, 'edit') +
             ` (${
-                (commentEditTime - (numElapsed() - parseInt(c.ctime))) / 60
+                parseInt((commentEditTime - (numElapsed() - parseInt(c.ctime))) / 60)
             } minutes left)`
         : "");
     }) + $h.pre(urlsToLinks($h.entities(c.body.trim())));
