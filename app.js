@@ -140,7 +140,7 @@ app.get('/rss', async (req, res, next) => {
       newsListToRSS(news)
     )
   );
-  res.type('rss').send(rss);
+  res.type('xml').send(rss);
 });
 
 app.get('/news/:news_id', async (req, res, next) => {
@@ -365,9 +365,9 @@ app.get("/reply/:news_id/:comment_id", async (req, res, next) => {
     newsToHTML(news) +
     commentToHtml(comment, user) +
     $h.form({name: 'f'},
-      $h.hidden({name: 'news_id', value: news.id})+
-      $h.hidden({name: 'comment_id', value: -1})+
-      $h.hidden({name: 'parent_id', value: comment_id})+
+      $h.hidden({name: 'news_id', value: news.id}) +
+      $h.hidden({name: 'comment_id', value: -1}) +
+      $h.hidden({name: 'parent_id', value: comment_id}) +
       $h.textarea({name: 'comment', cols: 60, rows: 10}) + $h.br() +
       $h.button({name: 'post_comment', value: 'Reply'})
     ) + $h.div({id: 'errormsg'})
@@ -394,8 +394,8 @@ app.get('/editcomment/:news_id/:comment_id', async (req, res, next) => {
     commentToHtml(comment, user) +
     $h.form({name: 'f'},
       $h.hidden({name: 'news_id', value: news.id}) +
-      $h.hidden({name: 'comment_id',value: comment_id})+
-      $h.hidden({name: 'parent_id', value: -1})+
+      $h.hidden({name: 'comment_id',value: comment_id}) +
+      $h.hidden({name: 'parent_id', value: -1}) +
       $h.textarea({name: 'comment', cols: 60, rows: 10}, $h.entities(comment.body)) + $h.br() +
       $h.button({name: 'post_comment', value: 'Edit'})
     ) + $h.div({id: 'errormsg'}) +
