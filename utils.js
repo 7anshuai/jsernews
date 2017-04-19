@@ -18,9 +18,9 @@ function checkParams (params, ...required) {
   return true;
 }
 
-// Return the hex representation of an unguessable 160 bit random number.
-async function getRand() {
-  let p = new Promise((resolve, reject) => {
+// Return a promise will resolve with the hex representation of an unguessable 160 bit random number.
+function getRand() {
+  return new Promise((resolve, reject) => {
     fs.open('/dev/urandom', 'r', (err, fd) => {
       if (err) return reject(err);
       let b = new Buffer(20);
@@ -30,7 +30,6 @@ async function getRand() {
       });
     });
   });
-  return await p;
 }
 
 function hexdigest(str, algorithm = 'md5') {
