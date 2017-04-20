@@ -208,12 +208,12 @@ app.get('/editnews/:news_id', async (req, res, next) => {
   $h.append($h.script('$(function() {$("input[name=edit_news]").click(submit);});'), 'body');
   let form = $h.div({id: 'submitform'}, $h.form({name: 'f'}, () => {
     return $h.hidden({name: 'news_id', value: news.id}) +
-      $h.label({for: 'title'}, 'text') +
+      $h.label({for: 'title'}, 'title') + $h.br() +
       $h.text({id: 'title', name: 'title', size: 80, value: news.title}) + $h.br() +
       $h.label({for: 'url'}, 'url') + $h.br() +
       $h.text({id: 'url', name: 'url', size: 60, value: $h.entities(news.url)}) + $h.br() +
       'or if you don\'t have an url type some text' + $h.br() +
-      $h.label({for: 'text'}, 'text') +
+      $h.label({for: 'text'}, 'text') + $h.br() +
       $h.textarea({id: 'text', name: 'text', cols: 60, rows: 10}, $h.entities(text)) + $h.br() +
       $h.checkbox({name: 'del', value: '1'}) + 'delete this news' + $h.br() +
       $h.button({name: 'edit_news', value: 'Edit news'});
@@ -468,19 +468,19 @@ app.get('/submit', (req, res) => {
   let {t, u} = req.query;
   if (!$user) return res.redirect('/login');
   $h.setTitle(`Submit a new story - ${siteName}`);
-  $h.append($h.script('$(function() {$("input[name=do_submit]").click(submit);$("#text").css("max-width", `${window.screen.width-34}px`)});'), 'body');
+  $h.append($h.script('$(function() {$("input[name=do_submit]").click(submit);});'), 'body');
   res.send($h.page(
     $h.h2('Submit a new story') +
     $h.div({id: 'submitform'},
       $h.form({name: 'f'},
         $h.hidden({name: 'news_id', value: -1}) +
-        $h.label({for: 'title'}, 'title') +
+        $h.label({for: 'title'}, 'title') + $h.br() +
         $h.text({id: 'title', name: 'title', size: 80, value: (t ? $h.entities(t) : '')}) + $h.br() +
         $h.label({for: 'url'}, 'url') + $h.br() +
         $h.text({id: 'url', name: 'url', size: 60, value: (u ? $h.entities(u) : '')}) + $h.br() +
         'or if you don\'t have an url type some text' + $h.br() +
-        $h.label({for: 'text'}, 'text') +
-        $h.textarea({id: 'text', name: 'text', cols: 60, rows: 10}) +
+        $h.label({for: 'text'}, 'text') + $h.br() +
+        $h.textarea({id: 'text', name: 'text', cols: 60, rows: 10}) + $h.br() +
         $h.button({name: 'do_submit', value: 'Submit'})
       )
     ) +

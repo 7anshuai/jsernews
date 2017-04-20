@@ -48,7 +48,6 @@ header h1 small {
     background: #fff;
     margin: 24px auto;
     max-width: 960px;
-    /*position: relative;*/
 }
 
 #content {
@@ -93,7 +92,6 @@ nav a {
 #login,#submitform {
     display:block;
     position:relative;
-    width:150px;
 }
 
 #login label, #submitform label {
@@ -178,6 +176,10 @@ article.deleted {
     color:#999;
 }
 
+form input[type=text] {
+    max-width: 100%;
+}
+
 form textarea {
     font-family: Courier;
     font-size:14px;
@@ -187,9 +189,7 @@ form textarea {
 .comment {
     position:relative;
     display:block;
-    margin-bottom:40px;
-    min-height:50px;
-    min-width:50em;
+    max-width: 100%;
 }
 
 .comment .avatar img {
@@ -213,7 +213,7 @@ form textarea {
 }
 
 .comment pre {
-    width:50em;
+    max-width:80%;
     position:relative;
     left:60px;
     margin-top:10px;
@@ -416,6 +416,10 @@ note {
 
     #link-menu-mobile{
         display:block;
+    }
+
+    .topcomment {
+        margin:0;
     }
 
 }
