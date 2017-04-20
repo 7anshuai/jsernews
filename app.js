@@ -42,14 +42,14 @@ app.use(async (req, res, next) => {
 
   global.$h = new HTMLGen();
   $h.append(() => {
-    return $h.link({href: '/css/style.css?v0.0.1', rel: 'stylesheet'}) +
+    return $h.link({href: `/css/style.css?v${version}`, rel: 'stylesheet'}) +
       $h.link({href: '/favicon.ico', rel: 'shortcut icon'});
   });
   $h.append(applicationHeader(), 'header');
   $h.append(applicationFooter, 'footer');
   $h.append(() => {
     return $h.script({src: '//code.jquery.com/jquery-3.1.1.min.js'}) +
-      $h.script({src: '/js/app.js?v0.0.1'}) +
+      $h.script({src: `/js/app.js?v${version}`}) +
       ($user ? $h.script(`var apisecret = '${$user.apisecret}';`) : '') +
       (keyboardNavigation == 1 
         ? $h.script('setKeyboardNavigation();') : '');
