@@ -1,3 +1,4 @@
+const should = require('should');
 const supertest = require('supertest');
 const app = require('../app');
 const agent = supertest(app);
@@ -30,6 +31,21 @@ describe('APP Routes', function () {
 
   it('should get a login page', done => {
     agent.get('/login').expect(200, done);
+  });
+
+  it('should a login err', done => {
+    agent.get('/api/login')
+      .send({
+        username: 'ts',
+        password: '123456'
+      })
+      .set('Accept', 'application/json')
+      .expect(200)
+      .end((err, res) => {
+        if (err) return done(err);
+        res.body.status.should.equal('err');
+        done();
+      })
   });
 
   it('should get a user home page', done => {

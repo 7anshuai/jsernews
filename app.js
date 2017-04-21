@@ -208,12 +208,12 @@ app.get('/editnews/:news_id', async (req, res, next) => {
   $h.append($h.script('$(function() {$("input[name=edit_news]").click(submit);});'), 'body');
   let form = $h.div({id: 'submitform'}, $h.form({name: 'f'}, () => {
     return $h.hidden({name: 'news_id', value: news.id}) +
-      $h.label({for: 'title'}, 'title') + $h.br() +
+      $h.label({for: 'title'}, 'title') +
       $h.text({id: 'title', name: 'title', size: 80, value: news.title}) + $h.br() +
-      $h.label({for: 'url'}, 'url') + $h.br() +
+      $h.label({for: 'url'}, 'url') +
       $h.text({id: 'url', name: 'url', size: 60, value: $h.entities(news.url)}) + $h.br() +
       'or if you don\'t have an url type some text' + $h.br() +
-      $h.label({for: 'text'}, 'text') + $h.br() +
+      $h.label({for: 'text'}, 'text') +
       $h.textarea({id: 'text', name: 'text', cols: 60, rows: 10}, $h.entities(text)) + $h.br() +
       $h.checkbox({name: 'del', value: '1'}) + 'delete this news' + $h.br() +
       $h.button({name: 'edit_news', value: 'Edit news'});
@@ -474,12 +474,12 @@ app.get('/submit', (req, res) => {
     $h.div({id: 'submitform'},
       $h.form({name: 'f'},
         $h.hidden({name: 'news_id', value: -1}) +
-        $h.label({for: 'title'}, 'title') + $h.br() +
+        $h.label({for: 'title'}, 'title') +
         $h.text({id: 'title', name: 'title', size: 80, value: (t ? $h.entities(t) : '')}) + $h.br() +
-        $h.label({for: 'url'}, 'url') + $h.br() +
+        $h.label({for: 'url'}, 'url') +
         $h.text({id: 'url', name: 'url', size: 60, value: (u ? $h.entities(u) : '')}) + $h.br() +
         'or if you don\'t have an url type some text' + $h.br() +
-        $h.label({for: 'text'}, 'text') + $h.br() +
+        $h.label({for: 'text'}, 'text') +
         $h.textarea({id: 'text', name: 'text', cols: 60, rows: 10}) + $h.br() +
         $h.button({name: 'do_submit', value: 'Submit'})
       )
@@ -504,7 +504,10 @@ app.get('/login', (req, res) => {
         $h.text({id: 'username', name: 'username', required: true}) +
         $h.label({for: 'password'}, 'password') +
         $h.password({id: 'password', name: 'password', required: true}) + $h.br() +
-        $h.checkbox({name: 'register', value: 1}) + 'create account' + $h.br() +
+        $h.checkbox({id: 'register', name: 'register', value: 1}) + $h.label({
+          for: 'register',
+          style: 'display: inline;'
+          }, 'create account') + $h.br() +
         $h.submit({name: 'do_login'}, 'Login')
       );
     }) + $h.div({id: 'errormsg'}) + $h.a({href: '/reset-password'}, 'reset password')
@@ -532,7 +535,7 @@ app.get('/reset-password', (req, res, next) => {
         $h.label({for: 'username'}, 'username') +
         $h.text({id: 'username', name:'username'}) +
         $h.label({for: 'email'}, 'email') +
-        $h.text({id: 'email', name: 'email'}) +
+        $h.text({id: 'email', name: 'email'}) + $h.br() +
         $h.submit({name: 'do_reset', value: 'Reset password'})
       )
     ) + $h.div({id: 'errormsg'})
@@ -579,6 +582,17 @@ app.get('/api/login', async (req, res) => {
 
   let [auth, apisecret] = await checkUserCredentials(params.username, params.password) || [];
   res.json(auth ? {status: 'ok', auth: auth, apisecret: apisecret} : {status: 'err', error: 'No match for the specified username / password pair.'});
+});
+
+app.post('/api/logout', async (req, res, next) => {
+  if ($user && checkApiSecret(req.body.apisecret)) {
+    await updateAuthToken($user)
+    return res.send({status: 'ok'});
+  }
+  return res.send({
+    status: 'err',
+    error: 'Wrong auth credentials or API secret.'
+  });
 });
 
 app.post('/api/create_account', async (req, res) => {

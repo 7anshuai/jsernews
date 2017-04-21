@@ -97,6 +97,7 @@ nav a {
 #login label, #submitform label {
     font-size:12px;
     font-weight:bold;
+    display: block;
 }
 
 div #errormsg {
@@ -420,6 +421,11 @@ note {
 
     .topcomment {
         margin:0;
+    }
+
+    form input[type=text],
+    form input[type=password] {
+        width: 100%;
     }
 
 }
