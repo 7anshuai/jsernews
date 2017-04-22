@@ -1,6 +1,5 @@
 const {createHash} = require('crypto');
 const fs = require('fs');
-const util = require('util');
 
 // Utility functions
 
