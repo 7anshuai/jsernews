@@ -61,12 +61,12 @@ app.use(async (req, res, next) => {
       let bscore = computeCommentScore(b);
       if (ascore == bscore) {
         // If score is the same favor newer comments
-        return spaceship(+b.ctime, +a.ctime);
+        return (+b.ctime > +a.ctime) - (+b.ctime < +a.ctime);
       } else {
         // If score is different order by score.
         // FIXME: do something smarter favouring newest comments
         // but only in the short time.
-        return spaceship(bscore, ascore);
+        return (bscore > ascore) - (bscore < ascore);
       }
     });
   });
