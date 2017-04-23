@@ -1,4 +1,5 @@
 const {pbkdf2} = require('crypto');
+const _ = require('underscore');
 const {karmaIncrementAmount, karmaIncrementInterval, mailRelay, mailFrom, PBKDF2Iterations, userCreationDelay, userInitialKarma} = require('./config')
 const debug = require('debug')('jsernews:user');
 
@@ -128,7 +129,8 @@ async function hashPassword(password, salt){
 
 // Return the user from the ID.
 async function getUserById(id) {
-  return await $r.hgetall(`user:${id}`);
+  let user = await $r.hgetall(`user:${id}`);
+  return _.isEmpty(user) ? null : user;
 }
 
 // Return the user from the username.

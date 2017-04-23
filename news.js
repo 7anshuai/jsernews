@@ -45,7 +45,7 @@ async function getNewsById(news_ids, opt={}) {
   })).exec();
 
   result.forEach((n, i) => {
-    n["username"] = usernames[i][1];
+    n["username"] = usernames[i][1] || 'deleted_user';
   });
 
   // Load $User vote information if we are in the context of a

@@ -1,4 +1,4 @@
-const {commentEditTime, commentReplyShift, deleteUser} = require('./config');
+const {commentEditTime, commentReplyShift, deletedUser} = require('./config');
 const {getNewsById} = require('./news');
 const {getUserById} = require('./user');
 const {hexdigest, numElapsed, strElapsed} = require('./utils');
