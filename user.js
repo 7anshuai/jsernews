@@ -80,13 +80,14 @@ async function createUser(username, password, opt){
   return [auth_token, apisecret, null];
 }
 
-// Create a new user with the specified github username and a random password
+// Create a new user with the specified github user and a random password
 //
 // Return value: the function returns two values, the first is the
 //               auth token if the registration succeeded, otherwise
 //               is nil. The second is the error message if the function
 //               failed (detected testing the first return value).
-async function createGitHubUser(bio, blog, email, html_url, github_id, login){
+async function createGitHubUser(github_user = {}){
+  let {bio, blog, email, html_url, login} = github_user;
   let isExists = await $r.exists(`username.to.id:${login}`);
 
   if ($user) {
@@ -96,7 +97,7 @@ async function createGitHubUser(bio, blog, email, html_url, github_id, login){
       blog: $user.blog || blog || '',
       email: $user.email || email,
       github_html_url: $user.github_html_url || html_url,
-      github_id: $user.github_id || github_id
+      github_id: $user.github_id || github_user.id
     });
 
     await $r.set(`username.to.id:${login}`, $user.id);
@@ -133,7 +134,7 @@ async function createGitHubUser(bio, blog, email, html_url, github_id, login){
       'auth': auth_token,
       'apisecret': apisecret,
       'github_html_url': html_url,
-      'github_id': github_id,
+      'github_id': github_user.id,
       'flags': id == 1 ? 'a' : '', // First user ever created (id = 1) is an admin
       'karma_incr_time': numElapsed()
     });

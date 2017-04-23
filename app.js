@@ -620,10 +620,9 @@ app.get('/auth/github/callback', async (req, res, next) => {
     next(err);
   });
 
-  let {bio, blog, email, html_url, id, login} = user;
-  let [auth, apisecret, errmsg] = await createGitHubUser(bio, blog, email, html_url, id, login);
+  let [auth, apisecret, errmsg] = await createGitHubUser(user);
   if (auth)
-    return res.cookie('auth', auth, {expires: new Date('Thu, 1 Aug 2030 20:00:00 UTC'), hhtpOnly: true}).redirect('/');
+    return res.cookie('auth', auth, {expires: new Date('Thu, 1 Aug 2030 20:00:00 UTC'), path: '/'}).redirect('/');
   next(Error(errmsg));
 });
 
