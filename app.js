@@ -15,10 +15,11 @@ const logger = require('morgan');
 const HTMLGen = require('html5-gen');
 const _ = require('underscore');
 const debug = require('debug')('jsernews:app');
+const fetch = require('node-fetch');
 
 const {Comment, commentToHtml, computeCommentScore, getUserComments, insertComment, voteComment, renderCommentsForNews, renderCommentSubthread} = require('./comments');
 const {deletedUser, keyboardNavigation, latestNewsPerPage, passwordMinLength, passwordResetDelay, savedNewsPerPage, siteName, siteDescription, siteUrl, subthreadsInRepliesPage, userCommentsPerPage, usernameRegexp} = require('./config');
-const {authUser, checkUserCredentials, createUser, getUserById, getUserByUsername, hashPassword, incrementKarmaIfNeeded, isAdmin, sendResetPasswordEmail, updateAuthToken} = require('./user');
+const {authUser, checkUserCredentials, createUser, createGitHubUser, getUserById, getUserByUsername, hashPassword, incrementKarmaIfNeeded, isAdmin, sendResetPasswordEmail, updateAuthToken} = require('./user');
 const {computeNewsRank, computeNewsScore, getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, getPostedNews, getSavedNews, delNews, editNews, insertNews, voteNews, newsToHTML, newsListToHTML, newsListToRSS} = require('./news');
 const {checkParams, hexdigest, numElapsed, strElapsed} = require('./utils');
 global.$r = require('./redis');
@@ -574,6 +575,58 @@ app.get('/set-new-password', async (req, res, next) => {
 
 });
 
+app.get('/auth/github', (req, res, next) => {
+  res.redirect(`https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}`);
+});
+
+app.get('/auth/github/callback', async (req, res, next) => {
+  if (!checkParams(req.query, 'code')) return next(Error('Error happens, please retry a later.'));
+  let code = req.query.code;
+  let headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json"
+  };
+
+
+  let {access_token, token_type} = await fetch('https://github.com/login/oauth/access_token', {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify({
+      client_id: process.env.GITHUB_CLIENT_ID,
+      client_secret: process.env.GITHUB_CLIENT_SECRET,
+      code: code
+    })
+  }).then(res => {
+    if (res.ok) return res.json();
+    let error = new Error('HTTP Exception[POST]')
+    error.status = res.status;
+    error.statusText = res.statusText;
+    error.url = res.url;
+    throw error;
+  }).catch(err => {
+    debug(err);
+    next(err);
+  });
+
+  let user = await fetch(`https://api.github.com/user?access_token=${access_token}`).then(res => {
+    if (res.ok) return res.json();
+    let error = new Error('HTTP Exception[POST]')
+    error.status = res.status;
+    error.statusText = res.statusText;
+    error.url = res.url;
+    throw error;
+  }).catch(err => {
+    debug(err);
+    next(err);
+  });
+
+  let {bio, blog, email, html_url, id, login} = user;
+  let [auth, apisecret, errmsg] = await createGitHubUser(bio, blog, email, html_url, id, login);
+  if (auth)
+    return res.cookie('auth', auth, {expires: new Date('Thu, 1 Aug 2030 20:00:00 UTC'), hhtpOnly: true}).redirect('/');
+  next(Error(errmsg));
+});
+
 // API implementation
 app.get('/api/login', async (req, res) => {
   let params = req.query;
@@ -586,7 +639,7 @@ app.get('/api/login', async (req, res) => {
 
 app.post('/api/logout', async (req, res, next) => {
   if ($user && checkApiSecret(req.body.apisecret)) {
-    await updateAuthToken($user)
+    await updateAuthToken($user);
     return res.send({status: 'ok'});
   }
   return res.send({

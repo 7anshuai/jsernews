@@ -56,7 +56,7 @@ async function createUser(username, password, opt){
   if (await rateLimitByIP(userCreationDelay, "create_user", opt.ip))
     return [null, null, "Please wait some time before creating a new user."];
 
-  let id = await $r.incr("users.count")
+  let id = await $r.incr("users.count");
   let auth_token = await getRand();
   let apisecret = await getRand();
   let salt = await getRand();
@@ -78,6 +78,70 @@ async function createUser(username, password, opt){
   await $r.set(`auth:${auth_token}`, id);
 
   return [auth_token, apisecret, null];
+}
+
+// Create a new user with the specified github username and a random password
+//
+// Return value: the function returns two values, the first is the
+//               auth token if the registration succeeded, otherwise
+//               is nil. The second is the error message if the function
+//               failed (detected testing the first return value).
+async function createGitHubUser(bio, blog, email, html_url, github_id, login){
+  let isExists = await $r.exists(`username.to.id:${login}`);
+
+  if ($user) {
+    if (isExists) return [null, null, 'There is already a GitHub account that belongs to you. Sign in with that account or delete it, then link it with your current account.'];
+    await $r.hmset(`user:${$user.id}`, {
+      about: $user.about || bio || '',
+      blog: $user.blog || blog || '',
+      email: $user.email || email,
+      github_html_url: $user.github_html_url || html_url,
+      github_id: $user.github_id || github_id
+    });
+
+    await $r.set(`username.to.id:${login}`, $user.id);
+    return [$user.auth, $user.apisecret, null];
+  }
+
+  if (isExists) {
+    let id = await $r.get(`username.to.id:${login}`);
+    let user = await getUserById(id);
+    await $r.hmset(`user:${id}`, {
+      about: user.about || bio || '',
+      blog: user.blog || blog || '',
+      email: user.email || email,
+      github_html_url: user.github_html_url || html_url
+    });
+
+    return [user.auth, user.apisecret, null];
+  } else {
+    let id = await $r.incr("users.count")
+    let auth_token = await getRand();
+    let apisecret = await getRand();
+    let password = await getRand();
+    let salt = await getRand();
+    await $r.hmset(`user:${id}`, {
+      'id': id,
+      'username': login,
+      'salt': salt,
+      'password': await hashPassword(password, salt),
+      'ctime': numElapsed(),
+      'karma': userInitialKarma,
+      'about': bio || '',
+      'blog': blog || '',
+      'email': email,
+      'auth': auth_token,
+      'apisecret': apisecret,
+      'github_html_url': html_url,
+      'github_id': github_id,
+      'flags': id == 1 ? 'a' : '', // First user ever created (id = 1) is an admin
+      'karma_incr_time': numElapsed()
+    });
+    await $r.set(`username.to.id:${login}`, id);
+    await $r.set(`auth:${auth_token}`, id);
+
+    return [auth_token, apisecret, null];
+  }
 }
 
 // In Lamer News users get karma visiting the site.
@@ -207,6 +271,7 @@ module.exports = {
   addFlags: addFlags,
   authUser: authUser,
   createUser: createUser,
+  createGitHubUser: createGitHubUser,
   updateAuthToken: updateAuthToken,
   checkUserCredentials: checkUserCredentials,
   getUserById: getUserById,
