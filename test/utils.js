@@ -1,5 +1,5 @@
 const should = require('should');
-const {checkParams, getRand, numElapsed, strElapsed, spaceship} = require('../utils');
+const {checkParams, getRand, numElapsed, strElapsed} = require('../utils');
 
 describe('Utils', () => {
 
@@ -45,18 +45,6 @@ describe('Utils', () => {
     oneMinuteAgo.should.equal('1 minute ago');
     oneHourAgo.should.equal('1 hour ago');
     oneDayAgo.should.equal('1 day ago');
-    done();
-  });
-
-  it('should works like spaceship operator in ruby', done => {
-    spaceship(1, 2).should.equal(-1);
-    spaceship(2, 1).should.equal(1);
-    spaceship(1, 1).should.equal(0);
-    spaceship('a', 'a').should.equal(0);
-    spaceship('a', 'b').should.equal(-1);
-    spaceship('b', 'a').should.equal(1);
-    spaceship('b', 'a').should.equal(1);
-    should(spaceship('a', 1)).equal(null);
     done();
   });
 });

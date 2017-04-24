@@ -56,29 +56,10 @@ function strElapsed(t){
   return `${units} ${label}${units > 1 ? 's' : ''} ago`;
 }
 
-// Combined Comparison / "Spaceship" Operator (<=>) in JavaScript
-// See http://stackoverflow.com/questions/34852855/combined-comparison-spaceship-operator-in-javascript
-function spaceship(a, b) {
-  if ((a === null || b === null) || (typeof a != typeof b)) {
-    return null;
-  }
-  if (typeof a === 'string') {
-    return (a).localeCompare(b);
-  } else {
-    if (a > b) {
-      return 1;
-    } else if (a < b) {
-      return -1;
-    }
-    return 0;
-  }
-}
-
 module.exports = {
   checkParams: checkParams,
   getRand: getRand,
   hexdigest: hexdigest,
   numElapsed: numElapsed,
-  strElapsed: strElapsed,
-  spaceship: spaceship
+  strElapsed: strElapsed
 }
