@@ -6,13 +6,15 @@ I've plan to hack on jsernews with Node.js/Express/Redis/jQuery in my free time 
 
 The goal is to have a implementation of the Lamer News style news website written using Node.js, Express, Redis and jQuery.
 
-This project was created in order to run https://jsernews.com - but it is just [experimental](http://beta.jsernews.com/) right now.
+This project was created in order to run https://jsernews.com, also is free for everybody to use, fork, and have fun with.
 
 ## Getting Started
 jsernews is a Node/Express/Redis/jQuery application. You need to install Redis and Node.js 7.x+ with the following node packages:
 
 - express
 - ioredis
+- html5-gen
+- node-fetch
 - smtp-protocol
 - underscore
 - and so on...
