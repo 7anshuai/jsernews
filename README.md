@@ -10,7 +10,25 @@ This project was created in order to run https://jsernews.com, also is free for 
 
 ## Data Layout
 
-At the moment it is compatible with the redis structure used by [Lamer News](https://github.com/antirez/lamernews#data-layout) 0.11.0.
+The 1.x branch have some difference with the redis structure used by [Lamer News](https://github.com/antirez/lamernews#data-layout) 0.11.0.
+
+### Users
+
+If a user sign in with GitHub, the redis hash `user:<user id>` will add more the following fields:
+
+```
+blog -> blog address
+github_html_url -> github html url address
+github_id -> github id of the user
+```
+
+Additionally for every user there is the following key:
+
+```
+username.to.id:<github_login> -> User ID
+```
+
+This is used to lookup users by name.
 
 ## Getting Started
 jsernews is a Node/Express/Redis/jQuery application. You need to install Redis and Node.js 7.x+ with the following node packages:
