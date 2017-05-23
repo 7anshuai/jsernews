@@ -1,7 +1,7 @@
 module.exports = {
   // General
   siteName: "JSer News",
-  siteUrl: "http://jsernews.com",
+  siteUrl: "https://jsernews.com",
   siteDescription: "",
 
   // Redis config

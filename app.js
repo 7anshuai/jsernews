@@ -494,6 +494,7 @@ app.get('/submit', (req, res) => {
 });
 
 app.get('/login', (req, res) => {
+  if ($user) return res.redirect('/');
   $h.setTitle(`Login - ${siteName}`);
   let script = $h.script('$(function() {$("form[name=f]").submit(login);});');
   $h.append(script, 'body');
