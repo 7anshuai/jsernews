@@ -124,10 +124,10 @@ function commentToHtml (c, u, show_parent = false) {
       let digest = hexdigest(email);
       return $h.img({src: `//gravatar.com/avatar/${digest}?s=48&d=mm`});
     }) + $h.span({class: 'info'}, () => {
-      return $h.span({class: 'username'}, 
+      return $h.span({class: 'username'},
           $h.a({href: '/user/' + encodeURIComponent(u.username)}, $h.entities(u.username))
-        ) + ' ' + 
-        strElapsed(+c.ctime) + '. ' + 
+        ) + ' ' +
+        strElapsed(+c.ctime) + '. ' +
         (!c.topcomment ? $h.a({href: `/comment/${news_id}/${c.id}`, class: 'reply'}, 'link ') : '') +
         (show_parent && c.parent_id > -1 ? $h.a({href: `/comment/${news_id}/${c.parent_id}`, class: 'reply'}, 'parent ') : '') +
         ($user && !c.topcomment ? $h.a({href: `/reply/${news_id}/${c.id}`, class: 'reply'}, 'reply ') : ' ') +
@@ -309,4 +309,4 @@ module.exports = {
   renderCommentsForNews: renderCommentsForNews,
   renderCommentSubthread: renderCommentSubthread,
   urlsToLinks: urlsToLinks
-};
+}

@@ -89,7 +89,7 @@ async function computeNewsScore(news){
   let votes = upvotes.length / 2 + downvotes.length / 2;
   if (votes > newsScoreLogStart)
     score += Math.log(votes- newsScoreLogStart) * newsScoreLogBooster;
-  
+
   return score;
 }
 
@@ -331,10 +331,10 @@ function newsToHTML (news, opt) {
         return $h.span({class: 'upvotes'}, `${news.up}`) + ' up and ' +
           $h.span({class: 'downvotes'}, `${news.down}`) + ' down, posted by ' +
           $h.a({href: `/user/${$h.urlencode(news.username)}`}, $h.entities(news.username)) + ' ' + strElapsed(news.ctime) + ' ' +
-          $h.a({href: `/news/${news.id}`}, parseInt(news.comments) != 0 ? `${news.comments} comment${news.comments > 1 ? 's' : ''}` : 'discuss') + ($user && isAdmin($user) 
+          $h.a({href: `/news/${news.id}`}, parseInt(news.comments) != 0 ? `${news.comments} comment${news.comments > 1 ? 's' : ''}` : 'discuss') + ($user && isAdmin($user)
             ? ' - ' + $h.a({href: `/editnews/${news.id}`}, 'edit') + ' - ' + $h.a({href: `https://twitter.com/intent/tweet?url=${siteUrl}/news/${news.id}&text=${$h.urlencode(news.title)} - `}, 'tweet')
             : '');
-      }) + (opt && opt.debug && $user && isAdmin($user) 
+      }) + (opt && opt.debug && $user && isAdmin($user)
         ? ` id: ${news.id} score: ${news.score} rank: ${computeNewsRank(news)} zset_rank: `
         : '') + ($h.pretty ? '\n' : '');
   });
@@ -396,7 +396,7 @@ function newsListToRSS(news){
 
 // Generate the main page of the web site, the one where news are ordered by
 // rank.
-// 
+//
 // As a side effect thsi function take care of checking if the rank stored
 // in the DB is no longer correct (as time is passing) and updates it if
 // needed.

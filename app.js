@@ -52,7 +52,7 @@ app.use(async (req, res, next) => {
     return $h.script({src: '//code.jquery.com/jquery-3.1.1.min.js'}) +
       $h.script({src: `/js/app.js?v${version}`}) +
       ($user ? $h.script(`var apisecret = '${$user.apisecret}';`) : '') +
-      (keyboardNavigation == 1 
+      (keyboardNavigation == 1
         ? $h.script('setKeyboardNavigation();') : '');
   }, 'body');
 
@@ -250,8 +250,8 @@ app.get('/user/:username', async (req, res, next) => {
           (owner ? $h.li($h.a({href: '/saved/0'}, 'saved news')) : '') +
           $h.li($h.a({href: `/usercomments/${$h.urlencode(user.username)}/0`}, 'user comments')) +
           $h.li($h.a({href: `/usernews/${$h.urlencode(user.username)}/0`}, 'user news'));
-      }); 
-    }) + (owner ? $h.append($h.script('$(function(){$("input[name=update_profile]").click(update_profile);});'), 'body') && 
+      });
+    }) + (owner ? $h.append($h.script('$(function(){$("input[name=update_profile]").click(update_profile);});'), 'body') &&
       $h.br() + $h.form({name: 'f'}, () => {
         return $h.label({for: 'email'}, 'email (not visible, used for gravatar)') + $h.br() +
           $h.text({id: 'email', name: 'email', size: 40, value: $h.entities(user.email)}) + $h.br() +
@@ -906,7 +906,7 @@ function applicationFooter() {
       return l;
     }).join(' | ');
   }) + (keyboardNavigation == 1 ? $h.div({id: 'keyboard-help', style: 'display: none;'}, () => {
-    return $h.div({class: 'keyboard-help-banner banner-background banner'}) + ' ' + 
+    return $h.div({class: 'keyboard-help-banner banner-background banner'}) + ' ' +
       $h.div({class: 'keyboard-help-banner banner-foreground banner'}, () => {
         return $h.div({class: 'primary-message'}, 'Keyboard shortcuts') + ' ' +
           $h.div({class: 'secondary-message'}, () => {
