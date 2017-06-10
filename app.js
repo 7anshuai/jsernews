@@ -655,7 +655,7 @@ app.post('/api/create_account', async (req, res) => {
   if (!usernameRegexp.test(username))
     return res.json({status: 'err', error: `Username must match /${usernameRegexp.source}/`});
   if(password.length < passwordMinLength)
-    return res.json({status: err, error: `Password is too short. Min length: ${passwordMinLength}`});
+    return res.json({status: 'err', error: `Password is too short. Min length: ${passwordMinLength}`});
 
   let [auth, apisecret, errmsg] = await createUser(username, password, {ip: req.ip});
   if (auth)
