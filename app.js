@@ -466,7 +466,7 @@ app.get('/recompute', async (req, res) => {
 
 app.get('/submit', (req, res) => {
   let {t, u} = req.query;
-  if (!$user) return res.redirect('/login');
+  if (!$user) return res.redirect(`/login?redirect=${$h.urlencode(req.originalUrl)}`);
   $h.setTitle(`Submit a new story - ${siteName}`);
   $h.append($h.script('$(function() {$("input[name=do_submit]").click(submit);});'), 'body');
   res.send($h.page(
