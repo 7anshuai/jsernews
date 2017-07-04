@@ -13,6 +13,10 @@ function login() {
                 document.cookie =
                     'auth='+r.auth+
                     '; expires=Thu, 1 Aug 2030 20:00:00 UTC; path=/';
+                if (window.location.search && window.URL) {
+                    var params = new URL(document.location).searchParams;
+                    return window.location.href = params.get('redirect') || '/';
+                }
                 window.location.href = "/";
             } else {
                 $("#errormsg").html(r.error)
