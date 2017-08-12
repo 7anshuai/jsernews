@@ -606,7 +606,7 @@ app.get('/auth/github/callback', async (req, res, next) => {
     throw error;
   }).catch(err => {
     debug(err);
-    next(err);
+    return next(err);
   });
 
   let user = await fetch(`https://api.github.com/user?access_token=${access_token}`).then(res => {
@@ -618,7 +618,7 @@ app.get('/auth/github/callback', async (req, res, next) => {
     throw error;
   }).catch(err => {
     debug(err);
-    next(err);
+    return next(err);
   });
 
   let [auth, apisecret, errmsg] = await createGitHubUser(user);
