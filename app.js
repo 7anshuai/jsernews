@@ -136,7 +136,7 @@ app.get('/rss', async (req, res, next) => {
     $h.channel(
       $h.title(siteName) + ' ' +
       `<link>${siteUrl}</link>` + ' ' +
-      $h.description('Description pending') + ' ' +
+      $h.description(siteDescription) + ' ' +
       newsListToRSS(news)
     )
   );
