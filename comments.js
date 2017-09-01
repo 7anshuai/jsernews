@@ -1,3 +1,5 @@
+const _ = require('underscore');
+const h = require('hyperscript');
 const {commentEditTime, commentReplyShift, deletedUser} = require('./config');
 const {getNewsById} = require('./news');
 const {getUserById} = require('./user');
@@ -111,27 +113,30 @@ function commentToHtml (c, u, show_parent = false) {
   let news_id = c.thread_id;
 
   if (c.del && +c.del == 1)
-    return $h.article({style: indent, class: 'commented deleted'}, 'comment deleted');
+    return h('article', {style: indent, class: 'commented deleted'}, 'comment deleted');
 
   let show_edit_link = !c.topcomment &&
       ($user && (+$user.id == +c.user_id)) &&
       (+c.ctime > (numElapsed() - commentEditTime));
 
   let comment_id = c.id ? `${news_id}-${c.id}` : '';
-  return $h.article({class: 'comment', style: indent, 'data-comment-id': comment_id, id: comment_id}, () => {
-    return $h.span({class: "avatar"}, () => {
+  let pre = h('pre');
+  pre.innerHTML = urlsToLinks(_.escape(c.body.trim()));
+  return h('article', {class: 'comment', style: indent, 'data-comment-id': comment_id, id: comment_id},
+    h('span', {class: "avatar"}, (() => {
       let email = u.email || "";
       let digest = hexdigest(email);
-      return $h.img({src: `//gravatar.com/avatar/${digest}?s=48&d=mm`});
-    }) + $h.span({class: 'info'}, () => {
-      return $h.span({class: 'username'},
-          $h.a({href: '/user/' + encodeURIComponent(u.username)}, $h.entities(u.username))
-        ) + ' ' +
-        strElapsed(+c.ctime) + '. ' +
-        (!c.topcomment ? $h.a({href: `/comment/${news_id}/${c.id}`, class: 'reply'}, 'link ') : '') +
-        (show_parent && c.parent_id > -1 ? $h.a({href: `/comment/${news_id}/${c.parent_id}`, class: 'reply'}, 'parent ') : '') +
-        ($user && !c.topcomment ? $h.a({href: `/reply/${news_id}/${c.id}`, class: 'reply'}, 'reply ') : ' ') +
-        (!c.topcomment ? (() => {
+      return h('img', {src: `//gravatar.com/avatar/${digest}?s=48&d=mm`});
+    })()),
+    h('span', {class: 'info'},
+      h('span', {class: 'username'},
+        h('a', {href: '/user/' + encodeURIComponent(u.username)}, _.escape(u.username))
+      ), ' ',
+      strElapsed(+c.ctime) + '. ',
+      (!c.topcomment ? h('a', {href: `/comment/${news_id}/${c.id}`, class: 'reply'}, 'link ') : ''),
+      (show_parent && c.parent_id > -1 ? h('a', {href: `/comment/${news_id}/${c.parent_id}`, class: 'reply'}, 'parent ') : ''),
+      ($user && !c.topcomment ? h('a', {href: `/reply/${news_id}/${c.id}`, class: 'reply'}, 'reply ') : ' '),
+      (!c.topcomment ? (() => {
           let upclass = 'uparrow';
           let downclass = 'downarrow';
           if ($user && c.up && c.up.includes(+$user.id)) {
@@ -141,18 +146,17 @@ function commentToHtml (c, u, show_parent = false) {
             downclass += ' voted';
             upclass += ' disabled';
           }
-          return `${score} point` + `${Math.abs(+score) > 1 ? 's' : ''}` + ' ' +
-            $h.a({href: '#up', class: upclass}, '&#9650; ') +
-            $h.a({href: '#down', class: downclass}, '&#9660; ');
-        })() : ' ') +
+          return [`${score} point` + `${Math.abs(+score) > 1 ? 's' : ''}` + ' ',
+            h('a', {href: '#up', class: upclass}, '▲ '),
+            h('a', {href: '#down', class: downclass}, '▼ ')];
+        })() : ' '),
         (show_edit_link ?
-          $h.a({href: `/editcomment/${news_id}/${c.id}`, class: 'reply'}, 'edit') +
-            ` (${
-                parseInt((commentEditTime - (numElapsed() - parseInt(c.ctime))) / 60)
-            } minutes left)`
-        : "");
-    }) + $h.pre(urlsToLinks($h.entities(c.body.trim())));
-  });
+          [h('a', {href: `/editcomment/${news_id}/${c.id}`, class: 'reply'}, 'edit'),
+          ` (${
+              parseInt((commentEditTime - (numElapsed() - parseInt(c.ctime))) / 60)
+          } minutes left)`]
+        : '')
+    ), pre);
 }
 
 // Get comments in chronological order for the specified user in the
@@ -263,22 +267,22 @@ async function voteComment(news_id, comment_id, user_id, vote_type) {
 }
 
 async function renderCommentsForNews(news_id, root = -1) {
-  let html = '';
+  let auxs = [];
   let user = {};
   await comment.renderComments(news_id, root, async (c) => {
     if (!user[c.id]) user[c.id] = await getUserById(c.user_id);
     if (!user[c.id]) user[c.id] = deletedUser;
     let u = user[c.id];
-    html += commentToHtml(c, u);
+    auxs.push(commentToHtml(c, u));
   });
-  return html ? $h.div({'id': 'comments'}, html) : '';
+  return auxs.length ? h('div', {'id': 'comments'}, auxs) : '';
 }
 
 async function renderCommentSubthread(comment, sep=''){
   let u = await getUserById(comment.user_id) || deletedUser;
   let comments = await renderCommentsForNews(comment.thread_id, + comment.id);
-  return $h.div({class: "singlecomment"}, commentToHtml(comment, u, true)) + (comments ?
-    $h.div({class: "commentreplies"}, sep + comments) : '');
+  return [h('div', {class: "singlecomment"}, commentToHtml(comment, u, true)), (comments ?
+    h('div', {class: "commentreplies"}, [sep, comments]) : '')];
 }
 
 // Given a string returns the same string with all the urls converted into

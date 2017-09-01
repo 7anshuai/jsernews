@@ -1,4 +1,5 @@
 const _ = require('underscore');
+const h = require('hyperscript');
 const debug = require('debug')('jsernews:news');
 
 const {commentMaxLength, newsEditTime, newsAgePadding, newsScoreLogStart, newsScoreLogBooster, newsSubmissionBreak, newsUpvoteMinKarma, newsDownvoteMinKarma, newsUpvoteKarmaCost, newsDownvoteKarmaCost, newsUpvoteKarmaTransfered, preventRepostTime, rankAgingFactor, siteUrl, topNewsAgeLimit, latestNewsPerPage, topNewsPerPage} = require('./config');
@@ -307,7 +308,7 @@ async function voteNews(news_id, user_id, vote_type){
 // This function expects as input a news entry as obtained from
 // the get_news_by_id function.
 function newsToHTML (news, opt) {
-  if (news.del) return $h.article({class: 'deleted'}, '[deleted news]');
+  if (news.del) return h('article', {class: 'deleted'}, '[deleted news]');
   let domain = getNewsDomain(news);
   news = Object.assign({}, news); // Copy the object so we can modify it as we wish.
   if (!domain) news.url = `/news/${news.id}`;
@@ -320,24 +321,21 @@ function newsToHTML (news, opt) {
     downclass += " voted";
     upclass += " disabled";
   }
-  return $h.article({'data-news-id': news.id}, () => {
-    return $h.a({href: '#up', class: upclass}, '&#9650;') + ' ' +
-      $h.h3($h.a({href: news.url, rel: 'nofollow'}, $h.entities(news.title))) + ' ' +
-      $h.address(() => {
-        return (domain ? `at ${$h.entities(domain)}` : '') + (($user && $user.id == news.user_id && news.ctime > (numElapsed() - newsEditTime)) ? ' ' + $h.a({href: `/editnews/${news.id}`}, '[edit]') : '');
-      }) +
-      $h.a({href: '#down', class: downclass}, '&#9660;') +
-      $h.p(() => {
-        return $h.span({class: 'upvotes'}, `${news.up}`) + ' up and ' +
-          $h.span({class: 'downvotes'}, `${news.down}`) + ' down, posted by ' +
-          $h.a({href: `/user/${$h.urlencode(news.username)}`}, $h.entities(news.username)) + ' ' + strElapsed(news.ctime) + ' ' +
-          $h.a({href: `/news/${news.id}`}, parseInt(news.comments) != 0 ? `${news.comments} comment${news.comments > 1 ? 's' : ''}` : 'discuss') + ($user && isAdmin($user)
-            ? ' - ' + $h.a({href: `/editnews/${news.id}`}, 'edit') + ' - ' + $h.a({href: `https://twitter.com/intent/tweet?url=${siteUrl}/news/${news.id}&text=${$h.urlencode(news.title)} - `}, 'tweet')
-            : '');
-      }) + (opt && opt.debug && $user && isAdmin($user)
+  return h('article', {'data-news-id': news.id},
+      h('a', {href: '#up', class: upclass}, '▲'), ' ',
+      h('h3', h('a', {href: news.url, rel: 'nofollow'}, _.escape(news.title))), ' ',
+      h('address', (domain ? `at ${_.escape(domain)}` : ''), (($user && $user.id == news.user_id && news.ctime > (numElapsed() - newsEditTime)) ? [' ', h('a', {href: `/editnews/${news.id}`}, '[edit]')] : '')),
+      h('a', {href: '#down', class: downclass}, '▼'),
+      h('p', h('span', {class: 'upvotes'}, `${news.up}`), ' up and ',
+          h('span', {class: 'downvotes'}, `${news.down}`), ' down, posted by ',
+          h('a', {href: `/user/${encodeURIComponent(news.username)}`}, _.escape(news.username)), ' ', strElapsed(news.ctime), ' ',
+          h('a', {href: `/news/${news.id}`}, parseInt(news.comments) != 0 ? `${news.comments} comment${news.comments > 1 ? 's' : ''}` : 'discuss'), ($user && isAdmin($user)
+            ? [' - ', h('a', {href: `/editnews/${news.id}`}, 'edit'), ' - ', h('a', {href: `https://twitter.com/intent/tweet?url=${siteUrl}/news/${news.id}&text=${encodeURIComponent(news.title)} - `}, 'tweet')]
+            : '')
+      ), (opt && opt.debug && $user && isAdmin($user)
         ? ` id: ${news.id} score: ${news.score} rank: ${computeNewsRank(news)} zset_rank: `
-        : '') + ($h.pretty ? '\n' : '');
-  });
+        : '')
+  );
 }
 
 // Turn the news into its RSS representation
@@ -349,45 +347,35 @@ function newsToRSS(news){
   news.ln_url = `${siteUrl}/news/${news.id}`;
   if (!domain) news.url = news.ln_url;
 
-  return $h.item(() => {
-    return $h.title(
-      $h.entities(news.title)
-    ) + ' ' +
-    $h.guid(
-      $h.entities(news.url)
-    ) + ' ' +
-    '<link>' +
-      $h.entities(news.url) +
-    '</link>' + ' ' +
-    $h.description(
-      '<![CDATA[' +
-      $h.a({href: news.ln_url}, 'Comments') +
-      ']]>'
-    ) + ' ' +
-    $h.comments(
-      $h.entities(news.ln_url)
-    )
-  }) + '\n';
+  return `<item>
+    <title>${_.escape(news.title)}</title>
+    <guid>${_.escape(news.url)}</guid>
+    <link>${_.escape(news.url)}</link>
+    <description>
+      <![CDATA[<a href="${news.ln_url}">Comments</a>]]>
+    </description>
+    <comments>${_.escape(news.ln_url)}</comments>
+  </item>`;
 }
 
 // If 'news' is a list of news entries (Ruby hashes with the same fields of
 // the Redis hash representing the news in the DB) this function will render
 // the HTML needed to show this news.
 function newsListToHTML(news, opt) {
-  return $h.section({id: 'newslist'}, () => {
-    let aux = '';
+  return h('section#newslist', (() => {
+    let aux = [];
     news.forEach((n) => {
-      aux += newsToHTML(n, opt);
+      aux.push(newsToHTML(n, opt));
     });
     return aux;
-  });
+  })());
 }
 
 // If 'news' is a list of news entries (Ruby hashes with the same fields of
 // the Redis hash representing the news in the DB) this function will render
 // the RSS needed to show this news.
 function newsListToRSS(news){
-  let aux = "";
+  let aux = '';
   for (let n of news) {
     aux += newsToRSS(n);
   }

@@ -27,7 +27,7 @@
     "cookie-parser": "^1.4.3",
     "debug": "^2.6.3",
     "express": "^4.14.0",
-    "html5-gen": "0.0.5",
+    "hyperscript": "^2.0.2",
     "ioredis": "^2.5.0",
     "morgan": "^1.7.0",
     "node-fetch": "^1.6.3",

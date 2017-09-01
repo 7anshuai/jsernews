@@ -13,7 +13,7 @@ jsernews is a Node/Express/Redis/jQuery application. You need to install Redis a
 
 - express
 - ioredis
-- html5-gen
+- ~~html5-gen~~ hyperscript
 - node-fetch
 - smtp-protocol
 - underscore

@@ -12,10 +12,10 @@ const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const favicon = require('serve-favicon');
 const logger = require('morgan');
-const HTMLGen = require('html5-gen');
 const _ = require('underscore');
 const debug = require('debug')('jsernews:app');
 const fetch = require('node-fetch');
+const h = require('hyperscript');
 
 const {Comment, commentToHtml, computeCommentScore, getUserComments, insertComment, voteComment, renderCommentsForNews, renderCommentSubthread} = require('./comments');
 const {deletedUser, keyboardNavigation, latestNewsPerPage, passwordMinLength, passwordResetDelay, savedNewsPerPage, siteName, siteDescription, siteUrl, subthreadsInRepliesPage, userCommentsPerPage, usernameRegexp} = require('./config');
@@ -41,20 +41,30 @@ app.use(async (req, res, next) => {
   global.$user = await authUser(req.cookies.auth);
   if ($user) await incrementKarmaIfNeeded();
 
-  global.$h = new HTMLGen();
-  $h.append(() => {
-    return $h.link({href: `/css/style.css?v${version}`, rel: 'stylesheet'}) +
-      $h.link({href: '/favicon.ico', rel: 'shortcut icon'});
-  });
-  $h.append(applicationHeader(), 'header');
-  $h.append(applicationFooter, 'footer');
-  $h.append(() => {
-    return $h.script({src: '//code.jquery.com/jquery-3.1.1.min.js'}) +
-      $h.script({src: `/js/app.js?v${version}`}) +
-      ($user ? $h.script(`var apisecret = '${$user.apisecret}';`) : '') +
-      (keyboardNavigation == 1
-        ? $h.script('setKeyboardNavigation();') : '');
-  }, 'body');
+  // Create a global `HTMLElement`
+  let head = h('head',
+      h('meta', {charset: 'utf-8'}),
+      h('meta', {content: 'width=device-width, initial-scale=1, maximum-scale=1', name: 'viewport'}),
+      h('meta', {content: 'index', name: 'robots'}),
+      h('title', `${siteName} - ${siteDescription}`),
+      h('link', {href: '/favicon.ico', rel: 'shortcut icon'}),
+      h('link', {href: `/css/style.css?v=${version}`, rel: 'stylesheet'}));
+  let content = h('section#content');
+  global.$doc = h('html',
+    head,
+    h('body',
+      h('.container',
+        applicationHeader(),
+        content,
+        applicationFooter()),
+      h('script', {src: '//code.jquery.com/jquery-3.1.1.min.js'}),
+      h('script', {src: `/js/app.js?v=${version}`}),
+      $user ? h('script', `var apisecret = '${$user.apisecret}';`) : '',
+      keyboardNavigation == 1 ? h('script', 'setKeyboardNavigation();') : '')
+  );
+  $doc.title = head.childNodes[3];
+  $doc.body = $doc.childNodes[1];
+  $doc.content = content;
 
   if (!global.comment) global.comment = new Comment($r, 'comment', (c, level) => {
     return c.sort((a, b) => {
@@ -77,8 +87,10 @@ app.use(async (req, res, next) => {
 
 app.get('/', async (req, res) => {
   let [news, numitems] = await getTopNews();
-  $h.setTitle(`${siteName} - ${siteDescription}`);
-  res.send($h.page($h.h2('Top News') + newsListToHTML(news, req.query)));
+
+  $doc.content.appendChild(h('h2', 'Top News'));
+  $doc.content.appendChild(newsListToHTML(news, req.query));
+  res.send($doc.outerHTML);
 });
 
 app.get('/latest', (req, res) => {
@@ -87,7 +99,6 @@ app.get('/latest', (req, res) => {
 
 app.get('/latest/:start', async (req, res) => {
   let {start} = req.params;
-  $h.setTitle(`Latest News - ${siteName}`);
   let paginate = {
     get: async (start, count) => {
       return await getLatestNews(start, count);
@@ -100,10 +111,10 @@ app.get('/latest/:start', async (req, res) => {
     link: '/latest/$'
   }
   let newslist = await listItems(paginate);
-  res.send($h.page(() => {
-    return $h.h2('Latest News') +
-      $h.section({id: 'newslist'}, newslist);
-  }));
+  $doc.title.textContent = `Latest News - ${siteName}`;
+  $doc.content.appendChild(h('h2', 'Latest News'));
+  $doc.content.appendChild(h('section#newslist', newslist));
+  res.send($doc.outerHTML);
 });
 
 app.get('/random', async (req, res) => {
@@ -116,31 +127,31 @@ app.get('/random', async (req, res) => {
 app.get('/replies', async (req, res, next) => {
   if (!$user) return res.redirect('/login');
   let [comments, count] = await getUserComments($user.id, 0, subthreadsInRepliesPage);
-  $h.setTitle(`Your threads - ${siteName}`);
-  let html = $h.page(
-    $h.h2('Your threads') +
-    $h.div({id: 'comments'}, await (async () => {
-      let aux = '';
+
+  $doc.title.textContent = `Your threads - ${siteName}`;
+  $doc.content.appendChild(h('h2', 'Your threads'));
+  $doc.content.appendChild(h('#comments', await (async () => {
+    let aux = [];
       for (let c of comments) {
-        aux += await renderCommentSubthread(c);
+        aux.push(await renderCommentSubthread(c));
       }
       await $r.hset(`user:${$user.id}`, 'replies', 0);
       return aux;
-    })())
-  );
-  res.send(html);
+  })()));
+  res.send($doc.outerHTML);
 });
 
 app.get('/rss', async (req, res, next) => {
   let [news, numitems] = await getLatestNews();
-  let rss = $h.rss({version: '2.0', 'xmlns:atom': 'http://www.w3.org/2005/Atom'},
-    $h.channel(
-      $h.title(siteName) + ' ' +
-      `<link>${siteUrl}</link>` + ' ' +
-      $h.description('Description pending') + ' ' +
-      newsListToRSS(news)
-    )
-  );
+  let rss = `<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+      <channel>
+        <title>${siteName}</title>
+        <link>${siteUrl}</link>
+        <description>${siteDescription}</description>
+        ${newsListToRSS(news)}
+      </channel>
+    </rss>`;
+
   res.type('xml').send(rss);
 });
 
@@ -164,29 +175,26 @@ app.get('/news/:news_id', async (req, res, next) => {
         topcomment: true
     }
     user = await getUserById(news.user_id) || deletedUser;
-    top_comment = $h.div({class: 'topcomment'}, (commentToHtml(c, user)));
-  } else {
-    top_comment = "";
+    top_comment = h('.topcomment', commentToHtml(c, user));
   }
 
-  $h.setTitle(`${news.title} - ${siteName}`);
-  let script = $h.script('$(function() {$("input[name=post_comment]").click(post_comment);});');
-  $h.append(script, 'body');
+  $doc.title.textContent = `${news.title} - ${siteName}`;
+  $doc.body.appendChild(h('script', '$(function() {$("input[name=post_comment]").click(post_comment);});'));
 
-  let html = $h.page(
-    $h.section({id: 'newslist'}, newsToHTML(news)) + top_comment +
-    ($user && !news.del ?
-      $h.form({name: 'f'}, () => {
-        return $h.hidden({name: 'news_id', value: news.id}) +
-          $h.hidden({name: 'comment_id', value: -1}) +
-          $h.hidden({name: 'parent_id', value: -1}) +
-          $h.textarea({name: 'comment', cols: 60, rows: 10}) + $h.br() +
-          $h.button({name: 'post_comment', value: 'Send comment'});
-      }) + $h.div({id: 'errormsg'}) :
-    $h.br()) + await renderCommentsForNews(news.id)
-  );
+  $doc.content.appendChild(h('section', {id: 'newslist'}, newsToHTML(news)));
+  if (top_comment) $doc.content.appendChild(top_comment);
+  let comments = await renderCommentsForNews(news.id);
+  if (comments) $doc.content.appendChild(comments);
+  if ($user && !news.del) {
+    $doc.content.appendChild(h('form', {name: 'f'}, h('input', {name: 'news_id', type: 'hidden', value: news.id}),
+      h('input', {name: 'comment_id', type: 'hidden', value: -1}),
+      h('input', {name: 'parent_id', type: 'hidden', value: -1}),
+      h('textarea', {name: 'comment', cols: 60, rows: 10}), h('br'),
+      h('input', {name: 'post_comment', type: 'button', value: 'Send comment'})));
+    $doc.content.appendChild(h('#errormsg'));
+  }
 
-  res.send(html);
+  res.send($doc.outerHTML);
 });
 
 app.get('/editnews/:news_id', async (req, res, next) => {
@@ -205,22 +213,27 @@ app.get('/editnews/:news_id', async (req, res, next) => {
     news.url = '';
   }
 
-  $h.setTitle(`Edit news - ${siteName}`);
-  $h.append($h.script('$(function() {$("input[name=edit_news]").click(submit);});'), 'body');
-  let form = $h.div({id: 'submitform'}, $h.form({name: 'f'}, () => {
-    return $h.hidden({name: 'news_id', value: news.id}) +
-      $h.label({for: 'title'}, 'title') +
-      $h.text({id: 'title', name: 'title', size: 80, value: news.title}) + $h.br() +
-      $h.label({for: 'url'}, 'url') +
-      $h.text({id: 'url', name: 'url', size: 60, value: $h.entities(news.url)}) + $h.br() +
-      'or if you don\'t have an url type some text' + $h.br() +
-      $h.label({for: 'text'}, 'text') +
-      $h.textarea({id: 'text', name: 'text', cols: 60, rows: 10}, $h.entities(text)) + $h.br() +
-      $h.checkbox({name: 'del', value: '1'}) + 'delete this news' + $h.br() +
-      $h.button({name: 'edit_news', value: 'Edit news'});
-  }));
+  $doc.title.textContent = `Edit news - ${siteName}`;
+  $doc.body.appendChild(h('script', '$(function() {$("input[name=edit_news]").click(submit);});'));
+  let form = h('div', {id: 'submitform'},
+    h('form', {name: 'f'},
+      h('input', {name: 'news_id', value: news.id, type: 'hidden'}),
+      h('label', {for: 'title'}, 'title'),
+      h('input', {id: 'title', name: 'title', size: 80, value: news.title, type: 'text'}), h('br'),
+      h('label', {for: 'url'}, 'url'),
+      h('input', {id: 'url', name: 'url', size: 60, value: _.escape(news.url), type: 'text'}), h('br'),
+      'or if you don\'t have an url type some text', h('br'),
+      h('label', {for: 'text'}, 'text'),
+      h('textarea', {id: 'text', name: 'text', cols: 60, rows: 10}, _.escape(text)), h('br'),
+      h('input', {name: 'del', value: '1', type: 'checkbox'}), 'delete this news', h('br'),
+      h('input', {name: 'edit_news', value: 'Edit news', type: 'submit'})
+  ));
 
-  res.send($h.page(newsToHTML(news) + form + $h.div({id: 'errormsg'})));
+  [newsToHTML(news), form, h('#errormsg')].forEach(node => {
+    $doc.content.appendChild(node);
+  });
+
+  res.send($doc.outerHTML);
 });
 
 app.get('/user/:username', async (req, res, next) => {
@@ -231,37 +244,37 @@ app.get('/user/:username', async (req, res, next) => {
     ['zcard', `user.posted:${user.id}`],
     ['zcard', `user.comments:${user.id}`]
   ]).exec();
-  $h.setTitle(`${user.username} - ${siteName}`);
+
   let owner = $user && ($user.id == user.id);
-  let html = $h.page(
-    $h.div({class: 'userinfo'}, () => {
-      return $h.span({class: 'avatar'}, () => {
+  $doc.title.textContent = `${user.username} - ${siteName}`;
+  $doc.content.appendChild(h('.userinfo',
+    h('span', {class: 'avatar'}, (() => {
         let email = user.email || '';
         let digest = hexdigest(email);
-        return $h.img({src: `//gravatar.com/avatar/${digest}?s=48&d=mm`});
-      }) + ' ' +
-      $h.h2($h.entities(user.username)) +
-      $h.pre($h.entities(user.about)) +
-      $h.ul(() => {
-        return $h.li($h.b('created ') + strElapsed(+ user.ctime)) +
-          $h.li($h.b('karma ') + `${user.karma} points`) +
-          $h.li($h.b('posted news ') + `${posted_news[1]}`) +
-          $h.li($h.b('posted comments ') + `${posted_comments[1]}`) +
-          (owner ? $h.li($h.a({href: '/saved/0'}, 'saved news')) : '') +
-          $h.li($h.a({href: `/usercomments/${$h.urlencode(user.username)}/0`}, 'user comments')) +
-          $h.li($h.a({href: `/usernews/${$h.urlencode(user.username)}/0`}, 'user news'));
-      });
-    }) + (owner ? $h.append($h.script('$(function(){$("input[name=update_profile]").click(update_profile);});'), 'body') &&
-      $h.br() + $h.form({name: 'f'}, () => {
-        return $h.label({for: 'email'}, 'email (not visible, used for gravatar)') + $h.br() +
-          $h.text({id: 'email', name: 'email', size: 40, value: $h.entities(user.email)}) + $h.br() +
-          $h.label({for: 'password'}, 'change password (optional)') + $h.br() +
-          $h.password({name: 'password', size: 40}) + $h.br() +
-          $h.label({for: 'about'}, 'about') + $h.br() +
-          $h.textarea({id: 'about', name: 'about', cols: 60, rows: 10}, $h.entities(user.about)) + $h.br() +
-          $h.button({name: 'update_profile', value: 'Update profile'});
-      }) + $h.div({id: 'errormsg'}) : ''));
-  res.send(html);
+        return h('img', {src: `//gravatar.com/avatar/${digest}?s=48&d=mm`});
+    })()),
+    h('h2', _.escape(user.username)),
+    h('pre', _.escape(user.about)),
+    h('ul',
+      h('li', h('b', 'created '), strElapsed(+ user.ctime)),
+      h('li', h('b', 'karma '), `${user.karma} points`),
+      h('li', h('b', 'posted news '), `${posted_news[1]}`),
+      h('li', h('b', 'posted comments '), `${posted_comments[1]}`),
+      (owner ? h('li', h('a', {href: '/saved/0'}, 'saved news')) : ''),
+      h('li', h('a', {href: `/usercomments/${encodeURIComponent(user.username)}/0`}, 'user comments')),
+      h('li', h('a', {href: `/usernews/${encodeURIComponent(user.username)}/0`}, 'user news'))),
+    (owner ? $doc.body.appendChild(h('script', '$(function(){$("input[name=update_profile]").click(update_profile);});')) &&
+      [h('br'), h('form', {name: 'f'},
+        h('label', {for: 'email'}, 'email (not visible, used for gravatar)'), h('br'),
+        h('input', {id: 'email', name: 'email', size: 40, type: 'text', value: _.escape(user.email)}), h('br'),
+        h('label', {for: 'password'}, 'change password (optional)'), h('br'),
+        h('input', {name: 'password', size: 40, type: 'password'}), h('br'),
+        h('label', {for: 'about'}, 'about'), h('br'),
+        h('textarea', {id: 'about', name: 'about', cols: 60, rows: 10}, _.escape(user.about)), h('br'),
+        h('input', {name: 'update_profile', type: 'submit', value: 'Update profile'})
+      ), h('div', {id: 'errormsg'})] : '')));
+
+  res.send($doc.outerHTML);
 });
 
 app.get('/usernews/:username/:start', async (req, res, next) => {
@@ -270,7 +283,6 @@ app.get('/usernews/:username/:start', async (req, res, next) => {
   if (typeof start != 'number' || isNaN(start)) return next();
   if (!user) return res.status(404).send('Non existing user');
 
-  $h.setTitle(`News posted by ${user.username} - ${siteName}`);
   let paginate = {
     get: async (start, count) => {
       return await getPostedNews(user.id, start, count);
@@ -280,13 +292,14 @@ app.get('/usernews/:username/:start', async (req, res, next) => {
     },
     start: start,
     perpage: savedNewsPerPage,
-    link: `/usernews/${$h.entities(user.username)}/$`
+    link: `/usernews/${_.escape(user.username)}/$`
   }
   let newslist = await listItems(paginate);
-  res.send($h.page(() => {
-    return $h.h2(`News posted by ${user.username}`) +
-      $h.section({id: 'newslist'}, newslist);
-  }));
+
+  $doc.title.textContent = `News posted by ${user.username} - ${siteName}`;
+  $doc.content.appendChild(h('h2', `News posted by ${user.username}`));
+  $doc.content.appendChild(h('section#newslist', newslist));
+  res.send($doc.outerHTML);
 });
 
 app.get('/saved/:start', async (req, res, next) => {
@@ -294,7 +307,6 @@ app.get('/saved/:start', async (req, res, next) => {
   if (!$user) return res.redirect('/login');
   if (typeof start != 'number' || isNaN(start)) return next();
 
-  $h.setTitle(`Saved news - ${siteName}`);
   let paginate = {
     get: async (start, count) => {
       return await getSavedNews($user.id, start, count);
@@ -307,10 +319,10 @@ app.get('/saved/:start', async (req, res, next) => {
     link: '/saved/$'
   }
   let newslist = await listItems(paginate);
-  res.send($h.page(() => {
-    return $h.h2('You saved News') +
-      $h.section({id: 'newslist'}, newslist);
-  }));
+  $doc.title.textContent = `Saved news - ${siteName}`;
+  $doc.content.appendChild(h('h2', 'You saved News'));
+  $doc.content.appendChild(h('section#newslist', newslist));
+  res.send($doc.outerHTML);
 });
 
 app.get('/usercomments/:username/:start', async (req, res, next) => {
@@ -319,7 +331,6 @@ app.get('/usercomments/:username/:start', async (req, res, next) => {
   if (typeof start != 'number' || isNaN(start)) return next();
   if (!user) return res.status(404).send('Non existing user');
 
-  $h.setTitle(`${user.username} comments - ${siteName}`);
   let paginate = {
     get: async (start, count) => {
       return await getUserComments(user.id, start, count);
@@ -330,12 +341,13 @@ app.get('/usercomments/:username/:start', async (req, res, next) => {
     },
     start: start,
     perpage: userCommentsPerPage,
-    link: `/usercomments/${$h.entities(user.username)}/$`
+    link: `/usercomments/${_.escape(user.username)}/$`
   }
-  res.send($h.page(
-    $h.h2(`${$h.entities(user.username)} comments`) +
-    $h.div({id: 'comments'}, await listItems(paginate))
-  ));
+
+  $doc.title.textContent = `${user.username} comments - ${siteName}`;
+  $doc.content.appendChild(h('h2', `${_.escape(user.username)} comments`));
+  $doc.content.appendChild(h('#comments', await listItems(paginate)));
+  res.send($doc.outerHTML);
 });
 
 app.get('/comment/:news_id/:comment_id', async (req, res, next) => {
@@ -344,11 +356,16 @@ app.get('/comment/:news_id/:comment_id', async (req, res, next) => {
   if (!news) return res.status(404).send('404 - This news does not exist.');
   let comment = await global.comment.fetch(news_id, comment_id);
   if (!comment) return res.status(404).send('404 - This comment does not exist.');
-  $h.setTitle(`${news.title} - ${siteName}`);
-  res.send($h.page(
-      $h.section({id: 'newslist'}, newsToHTML(news)) +
-      await renderCommentSubthread(comment, $h.h4('Replies'))
-  ));
+
+  $doc.title.textContent = `${news.title} - ${siteName}`;
+  $doc.content.appendChild(h('section#newslist', newsToHTML(news)));
+  let comments = await renderCommentSubthread(comment, h('h4', 'Replies'));
+  if (comments.length) {
+    for (let c of comments) {
+      if (c) $doc.content.appendChild(c);
+    }
+  }
+  res.send($doc.outerHTML);
 });
 
 app.get("/reply/:news_id/:comment_id", async (req, res, next) => {
@@ -360,19 +377,20 @@ app.get("/reply/:news_id/:comment_id", async (req, res, next) => {
   if(!comment) res.status(404).send('404 - This comment does not exist.');
   let user = await getUserById(comment.user_id) || deletedUser;
 
-  $h.setTitle(`Reply to comment - ${siteName}`);
-  $h.append($h.script('$(function() {$("input[name=post_comment]").click(post_comment);});'), 'body');
-  res.send($h.page(
-    newsToHTML(news) +
-    commentToHtml(comment, user) +
-    $h.form({name: 'f'},
-      $h.hidden({name: 'news_id', value: news.id}) +
-      $h.hidden({name: 'comment_id', value: -1}) +
-      $h.hidden({name: 'parent_id', value: comment_id}) +
-      $h.textarea({name: 'comment', cols: 60, rows: 10}) + $h.br() +
-      $h.button({name: 'post_comment', value: 'Reply'})
-    ) + $h.div({id: 'errormsg'})
+  $doc.title.textContent = `Reply to comment - ${siteName}`;
+  $doc.body.appendChild(h('script', '$(function() {$("input[name=post_comment]").click(post_comment);});'));
+  $doc.content.appendChild(h('div',
+    newsToHTML(news),
+    commentToHtml(comment, user),
+    h('form', {name: 'f'},
+      h('input', {type: 'hidden', name: 'news_id', value: news.id}),
+      h('input', {type: 'hidden', name: 'comment_id', value: -1}),
+      h('input', {type: 'hidden', name: 'parent_id', value: comment_id}),
+      h('textarea', {name: 'comment', cols: 60, rows: 10}), h('br'),
+      h('input', {type: 'button', name: 'post_comment', value: 'Reply'})
+    ), h('div', {id: 'errormsg'})
   ));
+  res.send($doc.outerHTML);
 });
 
 app.get('/editcomment/:news_id/:comment_id', async (req, res, next) => {
@@ -388,43 +406,44 @@ app.get('/editcomment/:news_id/:comment_id', async (req, res, next) => {
   let user = await getUserById(comment.user_id) || deletedUser;
   if (+$user.id != +user.id) return res.status(500).send('Permission denied.');
 
-  $h.setTitle(`Edit comment - ${siteName}`);
-  $h.append($h.script('$(function() {$("input[name=post_comment]").click(post_comment);});'), 'body');
-  res.send($h.page(
-    newsToHTML(news) +
-    commentToHtml(comment, user) +
-    $h.form({name: 'f'},
-      $h.hidden({name: 'news_id', value: news.id}) +
-      $h.hidden({name: 'comment_id',value: comment_id}) +
-      $h.hidden({name: 'parent_id', value: -1}) +
-      $h.textarea({name: 'comment', cols: 60, rows: 10}, $h.entities(comment.body)) + $h.br() +
-      $h.button({name: 'post_comment', value: 'Edit'})
-    ) + $h.div({id: 'errormsg'}) +
-    $h.div({class: 'note'}, 'Note: to remove the comment, remove all the text and press Edit.')
-  ));
+  $doc.title.textContent = `Edit comment - ${siteName}`;
+  $doc.body.appendChild(h('script', '$(function() {$("input[name=post_comment]").click(post_comment);});'));
+  [ newsToHTML(news),
+    commentToHtml(comment, user),
+    h('form', {name: 'f'},
+      h('input', {type: 'hidden', name: 'news_id', value: news.id}),
+      h('input', {type: 'hidden', name: 'comment_id',value: comment_id}),
+      h('input', {type: 'hidden', name: 'parent_id', value: -1}),
+      h('textarea', {name: 'comment', cols: 60, rows: 10}, comment.body), h('br'),
+      h('input', {name: 'post_comment', type: 'submit', value: 'Edit'})),
+    h('#errormsg'),
+    h('.note', 'Note: to remove the comment, remove all the text and press Edit.')
+  ].forEach( node => {
+    $doc.content.appendChild(node);
+  });
+  res.send($doc.outerHTML);
 });
 
 app.get('/about', (req, res, next) => {
-  $h.setTitle(`About - ${siteName}`);
-  res.send($h.page(
-    $h.div({id: 'about'},
-      $h.h2(`${siteName}`) +
-      $h.p('JSer News 是一个社区驱动的中文新闻网站，完全专注于 JavaScript 开发，HTML5，前端和 Node.js') +
-      $h.h3($h.b('成员')) +
-      $h.p('创立与维护者: ' + $h.a({href: 'http://7anshuai.js.org/'}, '@7anshuai')) +
-      $h.h3($h.b('发帖规则：')) +
-      $h.ul(
-        $h.li('编辑标题：只允许文章标题，不带博客名，不带日期等其他信息') +
-        $h.li('编辑 URLs：不带跟踪代码') +
-        $h.li('尊重惯例：JavaScript，不用 javascript 或 javaScript 或 Javascript') +
-        $h.li('标记超过一年的文章。例如： Welcome to JSer News! (2015)') +
-        $h.li('不链接到摘要，仅链接到原始内容') +
-        $h.li('不使用短地址，只允许到页面的真实链接') +
-        $h.li('仅发布 JavaScript 相关内容') +
-        $h.li('仅发布中文内容')
-      )
-    )
-  ));
+  $doc.title.textContent = `About - ${siteName}`;
+  $doc.content.appendChild(h('#about',
+    h('h2', `${siteName}`),
+    h('p', 'JSer News 是一个社区驱动的中文新闻网站，完全专注于 JavaScript 开发，HTML5，前端和 Node.js'),
+    h('h3', h('b', '成员')),
+    h('p', '创立与维护者: ', h('a', {href: 'http://7anshuai.js.org/'}, '@7anshuai')),
+    h('h3', h('b', '发帖规则：')),
+    h('ul',
+      h('li', '编辑标题：只允许文章标题，不带博客名，不带日期等其他信息'),
+      h('li', '编辑 URLs：不带跟踪代码'),
+      h('li', '尊重惯例：JavaScript，不用 javascript 或 javaScript 或 Javascript'),
+      h('li', '标记超过一年的文章。例如： Welcome to JSer News! (2015)'),
+      h('li', '不链接到摘要，仅链接到原始内容'),
+      h('li', '不使用短地址，只允许到页面的真实链接'),
+      h('li', '仅发布 JavaScript 相关内容'),
+      h('li', '仅发布中文内容')
+    )));
+
+  res.send($doc.outerHTML);
 });
 
 app.get('/admin', async (req, res, next) => {
@@ -433,23 +452,20 @@ app.get('/admin', async (req, res, next) => {
   let news_count = await $r.zcard('news.cron');
   let used_memory = await $r.info('memory');
 
-  $h.setTitle(`Admin section - ${siteName}`);
-  res.send($h.page(
-    $h.div({id: 'adminlinks'}, () => {
-      return $h.h2('Admin') +
-        $h.h3('Site stats') +
-        $h.ul(() => {
-          return $h.li(`${user_count} users`) +
-            $h.li(`${news_count} news posted`) +
-            $h.li(`${used_memory.match(/used_memory_human:(\S*)/)[1]} of memory used`);
-        }) +
-        $h.h3('Developer tools') +
-        $h.ul(
-          $h.li($h.a({href: '/recompute'}, 'Recompute news score and rank (may be slow!)')) +
-          $h.li($h.a({href: '/?debug=1'}, 'Show annotated home page'))
-        );
-    })
-  ));
+  $doc.title.textContent = `Admin section - ${siteName}`;
+  $doc.content.appendChild(h('div', {id: 'adminlinks'},
+    h('h2', 'Admin'),
+    h('h3', 'Site stats'),
+    h('ul',
+      h('li', `${user_count} users`),
+      h('li', `${news_count} news posted`),
+      h('li', `${used_memory.match(/used_memory_human:(\S*)/)[1]} of memory used`)),
+    h('h3', 'Developer tools'),
+    h('ul',
+      h('li', h('a', {href: '/recompute'}, 'Recompute news score and rank (may be slow!)')),
+      h('li', h('a', {href: '/?debug=1'}, 'Show annotated home page'))
+    )));
+  res.send($doc.outerHTML);
 });
 
 app.get('/recompute', async (req, res) => {
@@ -462,60 +478,58 @@ app.get('/recompute', async (req, res) => {
     await $r.hmset(`news:${news_id}`, 'score', score, 'rank', rank)
     await $r.zadd('news.top', rank, news_id)
   }
-  res.send($h.page($h.p('Done.')));
+
+  $doc.content.appendChild(h('p', 'Done.'));
+  res.send($doc.outerHTML);
 });
 
 app.get('/submit', (req, res) => {
   let {t, u} = req.query;
-  if (!$user) return res.redirect(`/login?redirect=${$h.urlencode(req.originalUrl)}`);
-  $h.setTitle(`Submit a new story - ${siteName}`);
-  $h.append($h.script('$(function() {$("input[name=do_submit]").click(submit);});'), 'body');
-  res.send($h.page(
-    $h.h2('Submit a new story') +
-    $h.div({id: 'submitform'},
-      $h.form({name: 'f'},
-        $h.hidden({name: 'news_id', value: -1}) +
-        $h.label({for: 'title'}, 'title') +
-        $h.text({id: 'title', name: 'title', size: 80, value: (t ? $h.entities(t) : '')}) + $h.br() +
-        $h.label({for: 'url'}, 'url') +
-        $h.text({id: 'url', name: 'url', size: 60, value: (u ? $h.entities(u) : '')}) + $h.br() +
-        'or if you don\'t have an url type some text' + $h.br() +
-        $h.label({for: 'text'}, 'text') +
-        $h.textarea({id: 'text', name: 'text', cols: 60, rows: 10}) + $h.br() +
-        $h.button({name: 'do_submit', value: 'Submit'})
+  let bl = `javascript:window.location=%22${siteUrl}/submit?u=%22+encodeURIComponent(document.location)+%22&t=%22+encodeURIComponent(document.title)`;
+  if (!$user) return res.redirect(`/login?redirect=${_.escape(req.originalUrl)}`);
+  $doc.title.textContent = `Submit a new story - ${siteName}`;
+  $doc.body.appendChild(h('script', '$(function() {$("input[name=do_submit]").click(submit);});'));
+  [ h('h2', 'Submit a new story'),
+    h('div', {id: 'submitform'},
+      h('form', {name: 'f'},
+        h('input', {name: 'news_id', type: 'hidden', value: -1}),
+        h('label', {for: 'title'}, 'title'),
+        h('input', {id: 'title', name: 'title', size: 80, type: 'text', value: (t ? _.escape(t) : '')}), h('br'),
+        h('label', {for: 'url'}, 'url'),
+        h('input', {id: 'url', name: 'url', size: 60, type: 'text', value: (u ? _.escape(u) : '')}), h('br'),
+        'or if you don\'t have an url type some text', h('br'),
+        h('label', {for: 'text'}, 'text'),
+        h('textarea', {id: 'text', name: 'text', cols: 60, rows: 10}), h('br'),
+        h('input', {name: 'do_submit', type: 'submit', value: 'Submit'})
       )
-    ) +
-    $h.div({id: 'errormsg'}) +
-    $h.p(() => {
-      let bl = `javascript:window.location=%22${siteUrl}/submit?u=%22+encodeURIComponent(document.location)+%22&t=%22+encodeURIComponent(document.title)`;
-      return 'Submitting news is simpler using the ' + $h.a({href: bl}, 'bookmarklet') +
-        ' (drag the link to your browser toolbar)';
-    })
-  ));
+    ),
+    h('div', {id: 'errormsg'}),
+    h('p', 'Submitting news is simpler using the ', h('a', {href: bl}, 'bookmarklet'),
+        ' (drag the link to your browser toolbar)')
+  ].forEach(node => {
+    $doc.content.appendChild(node);
+  });
+  res.send($doc.outerHTML);
 });
 
 app.get('/login', (req, res) => {
   if ($user) return res.redirect('/');
-  $h.setTitle(`Login - ${siteName}`);
-  let script = $h.script('$(function() {$("form[name=f]").submit(login);});');
-  $h.append(script, 'body');
-  let html = $h.page(
-    $h.div({id: 'login'}, () => {
-      return $h.form({name: 'f'},
-        $h.label({for: 'username'}, 'username') +
-        $h.text({id: 'username', name: 'username', required: true}) +
-        $h.label({for: 'password'}, 'password') +
-        $h.password({id: 'password', name: 'password', required: true}) + $h.br() +
-        $h.checkbox({id: 'register', name: 'register', value: 1}) + $h.label({
-          for: 'register',
-          style: 'display: inline;'
-          }, 'create account') + $h.br() +
-        $h.submit({name: 'do_login'}, 'Login')
-      );
-    }) + $h.div({id: 'errormsg'}) + $h.a({href: '/reset-password'}, 'reset password')
-  );
+  $doc.title.textContent = `Login - ${siteName}`;
+  $doc.body.appendChild(h('script', '$(function() {$("form[name=f]").submit(login);});'));
+  $doc.content.appendChild(h('#login',
+    h('form', {name: 'f'},
+      h('label', {for: 'username'}, 'username'),
+      h('input', {id: 'username', name: 'username', type: 'text', required: true}),
+      h('label', {for: 'password'}, 'password'),
+      h('input', {id: 'password', name: 'password', type:'password', required: true}), h('br'),
+      h('input', {id: 'register', name: 'register', type: 'checkbox', value: 1}),
+      h('label', {for: 'register', style: 'display: inline;'}, 'create account'), h('br'),
+      h('input', {name: 'do_login', type: 'submit', value: 'Login'})),
+    h('#errormsg'),
+    h('a', {href: '/reset-password'}, 'reset password')
+  ));
 
-  res.send(html);
+  res.send($doc.outerHTML);
 });
 
 app.get('/logout', async (req, res) => {
@@ -527,32 +541,36 @@ app.get('/logout', async (req, res) => {
 });
 
 app.get('/reset-password', (req, res, next) => {
-  $h.setTitle(`Reset Password - ${siteName}`);
-  $h.append($h.script('$(function() {$("form[name=f]").submit(reset_password);});'), 'body');
-  let html = $h.page(
-    $h.p('Welcome to the password reset procedure. Please specify the username and the email address you used to register to the site. ' + $h.br() +
-    $h.b('Note that if you did not specify an email it is impossible for you to recover your password.')) +
-    $h.div({id: 'login'},
-      $h.form({name: 'f'},
-        $h.label({for: 'username'}, 'username') +
-        $h.text({id: 'username', name:'username'}) +
-        $h.label({for: 'email'}, 'email') +
-        $h.text({id: 'email', name: 'email'}) + $h.br() +
-        $h.submit({name: 'do_reset', value: 'Reset password'})
+  $doc.title.textContent = `Reset Password - ${siteName}`;
+  $doc.body.appendChild(h('script', '$(function() {$("form[name=f]").submit(reset_password);});'));
+  [ h('p', 'Welcome to the password reset procedure. Please specify the username and the email address you used to register to the site. ', h('br'),
+    h('b', 'Note that if you did not specify an email it is impossible for you to recover your password.')),
+    h('div', {id: 'login'},
+      h('form', {name: 'f'},
+        h('label', {for: 'username'}, 'username'),
+        h('input', {id: 'username', name:'username', type: 'text'}),
+        h('label', {for: 'email'}, 'email'),
+        h('input', {id: 'email', name: 'email', type: 'email'}), h('br'),
+        h('input', {name: 'do_reset', type: 'submit', value: 'Reset password'})
       )
-    ) + $h.div({id: 'errormsg'})
-  )
+    ), h('div', {id: 'errormsg'})
+  ].forEach(node => {
+    $doc.content.appendChild(node);
+  });
 
-  res.send(html);
+  res.send($doc.outerHTML);
 });
 
 app.get('/reset-password-ok', (req, res, next) => {
-  $h.setTitle('Reset link sent to your inbox');
-  res.send($h.page(
-    $h.p('We sent an email to your inbox with a link that will let you reset your password.') +
-    $h.p('Please make sure to check the spam folder if the email does not appear in your inbox in a few minutes.') +
-    $h.p('The email contains a link that will automatically log into your account where you can set a new password in the account preferences.')
-  ));
+  $doc.title.textContent = 'Reset link sent to your inbox';
+  [ h('p', 'We sent an email to your inbox with a link that will let you reset your password.'),
+    h('p', 'Please make sure to check the spam folder if the email does not appear in your inbox in a few minutes.'),
+    h('p', 'The email contains a link that will automatically log into your account where you can set a new password in the account preferences.')
+  ].forEach(node => {
+    $doc.content.appendChild(node);
+  });
+
+  res.send($doc.outerHTML);
 });
 
 app.get('/set-new-password', async (req, res, next) => {
@@ -560,20 +578,22 @@ app.get('/set-new-password', async (req, res, next) => {
 
   let {username, auth} = req.query;
   let user = await getUserByUsername(username);
-  if (!user || user.auth != auth) return res.send($h.page($h.p('Link invalid or expired.')));
+  if (!user || user.auth != auth) {
+    $doc.content.appendChild(h('p', 'Link invalid or expired.'));
+    return res.send($doc.outerHTML);
+  }
 
   // Login the user and bring him to preferences to set a new password.
   // Note that we update the auth token so this reset link will not
   // work again.
   await updateAuthToken(user.id);
   user = await getUserById(user.id);
-  $h.append($h.script(`$(function() { document.cookie = 'auth=${user.auth}' +
-      '; expires=Thu, 1 Aug 2030 20:00:00 UTC; path=/';
-      window.location.href = '/user/${user.username}';
-      });`
-    ), 'body');
-   res.send($h.page());
-
+  $doc.body.appendChild(h('script', `$(function() { document.cookie = 'auth=${user.auth}' +
+    '; expires=Thu, 1 Aug 2030 20:00:00 UTC; path=/';
+    window.location.href = '/user/${user.username}';
+    });`
+  ));
+  res.send($doc.outerHTML);
 });
 
 app.get('/auth/github', (req, res, next) => {
@@ -853,7 +873,7 @@ async function allowedToPostInSeconds(){
 }
 
 // Navigation, header and footer
-function applicationHeader() {
+function applicationHeader () {
   let navitems = [
     ['top', '/'],
     ['latest', '/latest/0'],
@@ -861,61 +881,62 @@ function applicationHeader() {
     ['submit', '/submit']
   ];
 
-  let navbar_replies_link = $user ? $h.a({href: '/replies', class: 'replies'}, () => {
+  let navbar_replies_link = $user ? h('a.replies', {href: '/replies'}, (() => {
     let count = $user.replies || 0;
-    return 'replies ' + (parseInt(count) > 0 ? $h.sup(count) : '');
-  }) : '';
+    return ['replies ', (parseInt(count) > 0 ? h('sup', count) : '')];
+  })()) : '';
 
-  let navbar_admin_link = $user && isAdmin($user) ? $h.a({href: '/admin'}, $h.b('admin')) : '';
+  let navbar_admin_link = $user && isAdmin($user) ? h('a', {href: '/admin'}, h('b', 'admin')) : '';
 
-  let navbar = $h.nav(navitems.map((ni) => {
-    return $h.a({href: ni[1]}, $h.entities(ni[0]));
-  }).join('') + navbar_replies_link + navbar_admin_link);
+  let navbar = h('nav', navitems.map((ni) => {
+    return h('a', {href: ni[1]}, _.escape(ni[0]));
+  }), navbar_replies_link, navbar_admin_link);
 
-  let rnavbar = $h.nav({id: 'account'}, () => {
-    return $user ?
-      $h.a(
-        {href: `/user/${$h.urlencode($user.username)}`},
-        $h.entities($user.username + ` (${$user.karma})`)
-      ) + ' | ' +
-      $h.a({href: `/logout?apisecret=${$user.apisecret}`}, 'logout') :
-      $h.a({href: '/login'}, 'login / register');
-  });
+  let rnavbar = h('nav', {id: 'account'}, $user ?
+      [h('a', {href: `/user/${encodeURIComponent($user.username)}`},
+        _.escape($user.username + ` (${$user.karma})`)
+      ), ' | ',
+      h('a', {href: `/logout?apisecret=${$user.apisecret}`}, 'logout')] :
+      h('a', {href: '/login'}, 'login / register')
+  );
 
-  let mobile_menu = $h.a({href: '#', id: 'link-menu-mobile'}, '<~>');
+  let mobile_menu = h('a', {href: '#', id: 'link-menu-mobile'}, '<~>');
 
-  return $h.header(
-    $h.h1(
-      $h.a({href: '/'}, $h.entities(siteName) + ' ' + $h.small(version))
-    ) + navbar + rnavbar + mobile_menu
+  return h('header',
+    h('h1',
+      h('a', {href: '/'}, _.escape(siteName) + ' ', h('small', version))
+    ), navbar, rnavbar, mobile_menu
   );
 }
 
 function applicationFooter() {
-  return $h.footer(() => {
-    let links = [
-      ['about', '/about'],
-      ['source code', 'https://github.com/7anshuai/jsernews'],
-      ['rss feed', '/rss'],
-      // ['twitter', footerTwitterLink]
-    ];
+  let links = [
+    ['about', '/about'],
+    ['source code', 'https://github.com/7anshuai/jsernews'],
+    ['rss feed', '/rss'],
+    // ['twitter', footerTwitterLink]
+  ];
 
-    return links.map((l) => {
-      return l[1] ? $h.a({href: l[1]}, $h.entities(l[0])) : null;
-    }).filter((l) => {
-      return l;
-    }).join(' | ');
-  }) + (keyboardNavigation == 1 ? $h.div({id: 'keyboard-help', style: 'display: none;'}, () => {
-    return $h.div({class: 'keyboard-help-banner banner-background banner'}) + ' ' +
-      $h.div({class: 'keyboard-help-banner banner-foreground banner'}, () => {
-        return $h.div({class: 'primary-message'}, 'Keyboard shortcuts') + ' ' +
-          $h.div({class: 'secondary-message'}, () => {
-            return $h.p($h.strong({class: 'key'}, 'j/k:') + $h.span({class: 'desc'}, 'next/previous item')) +
-              $h.p($h.strong({class: 'key'}, 'enter:') + $h.span({class: 'desc'}, 'open link')) +
-              $h.p($h.strong({class: 'key'}, 'a/z:') + $h.span({class: 'desc'}, 'up/down vote item'));
-          });
-      });
-  }) : '');
+  return [
+    h('footer',
+      _.zip(links.map((l) => {
+        return l[1] ? h('a', {href: l[1]}, _.escape(l[0])) : null;
+      }).filter((l) => {
+        return l;
+      }), Array(links.length - 1).fill(' | '))),
+    keyboardNavigation == 1 ?
+      h('#keyboard-help', {style: 'display: none'},
+        h('.keyboard-help-banner.banner-background.banner'),
+        h('.keyboard-help-banner.banner-foreground.banner',
+          h('.primary-message', 'Keyboard shortcuts'),
+          h('.secondary-message',
+            h('p', h('strong.key', 'j/k:'), h('span.desc', 'next/previous item')),
+            h('p', h('strong.key', 'enter:'), h('span.desc', 'open link')),
+            h('p', h('strong.key', 'a/z:'), h('span.desc', 'up/down vote item'))
+          )
+        )
+      ) : ''
+    ]
 }
 
 // Show list of items with show-more style pagination.
@@ -938,18 +959,18 @@ function applicationFooter() {
 //
 // Return value: the current page rendering.
 async function listItems(o){
-  let aux = "";
+  let aux = [];
   if (o.start < 0) o.start = 0;
   let [items, count] = await o.get.call(o, o.start, o.perpage);
 
   for (let n of items) {
-    aux += await o.render.call(o, n);
+    aux.push(await o.render.call(o, n));
   }
 
   let last_displayed = parseInt(o.start + o.perpage);
   if (last_displayed < count) {
       let nextpage = o.link.replace("$", last_displayed);
-      aux += $h.a({href: nextpage, class: "more"}, '[more]');
+      aux.push(h('a', {href: nextpage, class: "more"}, '[more]'));
   }
   return aux;
 }
