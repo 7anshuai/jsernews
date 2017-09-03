@@ -66,6 +66,10 @@ footer {
     padding: 15px 0 8px;
 }
 
+footer a:hover {
+    color: #323330;
+}
+
 nav {
     margin-bottom:15px;
     display: inline;
@@ -73,6 +77,10 @@ nav {
 
 nav a {
     margin-left: 20px;
+}
+
+nav a:hover {
+    color: #323330;
 }
 
 #account {
