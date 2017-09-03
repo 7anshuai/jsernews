@@ -190,7 +190,7 @@ app.get('/news/:news_id', async (req, res, next) => {
       h('input', {name: 'comment_id', type: 'hidden', value: -1}),
       h('input', {name: 'parent_id', type: 'hidden', value: -1}),
       h('textarea', {name: 'comment', cols: 60, rows: 10}), h('br'),
-      h('input', {name: 'post_comment', type: 'button', value: 'Send comment'})));
+      h('input', {name: 'post_comment', type: 'submit', value: 'Send comment'})));
     $doc.content.appendChild(h('#errormsg'));
   }
 
@@ -387,7 +387,7 @@ app.get("/reply/:news_id/:comment_id", async (req, res, next) => {
       h('input', {type: 'hidden', name: 'comment_id', value: -1}),
       h('input', {type: 'hidden', name: 'parent_id', value: comment_id}),
       h('textarea', {name: 'comment', cols: 60, rows: 10}), h('br'),
-      h('input', {type: 'button', name: 'post_comment', value: 'Reply'})
+      h('input', {type: 'submit', name: 'post_comment', value: 'Reply'})
     ), h('div', {id: 'errormsg'})
   ));
   res.send($doc.outerHTML);
@@ -523,7 +523,7 @@ app.get('/login', (req, res) => {
       h('label', {for: 'password'}, 'password'),
       h('input', {id: 'password', name: 'password', type:'password', required: true}), h('br'),
       h('input', {id: 'register', name: 'register', type: 'checkbox', value: 1}),
-      h('label', {for: 'register', style: 'display: inline;'}, 'create account'), h('br'),
+      h('label', {for: 'register', style: {display: 'inline'}}, 'create account'), h('br'),
       h('input', {name: 'do_login', type: 'submit', value: 'Login'})),
     h('#errormsg'),
     h('a', {href: '/reset-password'}, 'reset password')

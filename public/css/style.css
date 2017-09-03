@@ -181,6 +181,20 @@ form input[type=text] {
     max-width: 100%;
 }
 
+form input[type=submit] {
+    background-color: #f0db4f;
+    border: 0 none;
+    color: #323330;
+    cursor: pointer;
+    font-weight: 500;
+    margin: 10px 0 0;
+    padding: 5px 10px;
+}
+
+form input[type=submit]:hover {
+    background-color: #ffd61f;
+}
+
 form textarea {
     font-family: Courier;
     font-size:14px;
@@ -232,7 +246,7 @@ article.comment .uparrow, article.comment .downarrow {
     font-size:14px;
 }
 
-note {
+.note {
     color: #666;
     margin-left:20px;
     font-size:14px;
