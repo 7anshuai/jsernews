@@ -1,7 +1,7 @@
 {
   "name": "jsernews",
   "version": "0.1.1",
-  "description": "",
+  "description": "The LN(lamer news) style social news site written in Node",
   "scripts": {
     "cover": "NODE_ENV=test istanbul cover _mocha",
     "debug": "DEBUG=jsernews:* node bin/www",
