@@ -159,7 +159,7 @@ app.get('/news/:news_id', async (req, res, next) => {
   let {news_id} = req.params;
   let news = await getNewsById(parseInt(news_id));
   if (!news || !news.id) {
-    let err = new Error('404 - This news does not exist.');
+    let err = new Error('This news does not exist.');
     err.status = 404;
     return next(err);
   }
@@ -201,9 +201,16 @@ app.get('/editnews/:news_id', async (req, res, next) => {
   if (!$user) return res.redirect('/login');
   let news_id = req.params.news_id;
   let news = await getNewsById(news_id);
-  if (!news) return res.status(404).send('404 - This news does not exist.');
-  if (parseInt($user.id) != parseInt(news.user_id) && !isAdmin($user))
-    return res.status(403).send('Permission denied.');
+  if (!news) {
+    let err = new Error('This news does not exist.');
+    err.status = 404;
+    return next(err);
+  }
+  if (parseInt($user.id) != parseInt(news.user_id) && !isAdmin($user)) {
+    let err = new Error('Permission denied.');
+    err.status = 403;
+    return next(err);
+  }
 
   let text;
   if (getNewsDomain(news)) {
@@ -239,7 +246,11 @@ app.get('/editnews/:news_id', async (req, res, next) => {
 app.get('/user/:username', async (req, res, next) => {
   let username = req.params.username;
   let user = await getUserByUsername(username);
-  if (!user) return res.status(404).send('Non existing user');
+  if (!user) {
+    let err = new Error('Non existing user.');
+    err.status = 404;
+    return next(err);
+  }
   let [posted_news, posted_comments] = await $r.pipeline([
     ['zcard', `user.posted:${user.id}`],
     ['zcard', `user.comments:${user.id}`]
@@ -281,7 +292,11 @@ app.get('/usernews/:username/:start', async (req, res, next) => {
   let start = + req.params.start;
   let user = await getUserByUsername(req.params.username);
   if (typeof start != 'number' || isNaN(start)) return next();
-  if (!user) return res.status(404).send('Non existing user');
+  if (!user) {
+    let err = new Error('Non existing user.');
+    err.status = 404;
+    return next(err);
+  }
 
   let paginate = {
     get: async (start, count) => {
@@ -329,7 +344,11 @@ app.get('/usercomments/:username/:start', async (req, res, next) => {
   let start = + req.params.start;
   let user = await getUserByUsername(req.params.username);
   if (typeof start != 'number' || isNaN(start)) return next();
-  if (!user) return res.status(404).send('Non existing user');
+  if (!user) {
+    let err = new Error('Non existing user.');
+    err.status = 404;
+    return next(err);
+  }
 
   let paginate = {
     get: async (start, count) => {
@@ -353,9 +372,18 @@ app.get('/usercomments/:username/:start', async (req, res, next) => {
 app.get('/comment/:news_id/:comment_id', async (req, res, next) => {
   let {news_id, comment_id} = req.params;
   let news = await getNewsById(news_id);
-  if (!news) return res.status(404).send('404 - This news does not exist.');
+  if (!news) {
+    let err = new Error('This news does not exist.');
+    err.status = 404;
+    return next(err);
+  }
+
   let comment = await global.comment.fetch(news_id, comment_id);
-  if (!comment) return res.status(404).send('404 - This comment does not exist.');
+  if (!comment) {
+    let err = new Error('This news does not exist.');
+    err.status = 404;
+    return next(err);
+  }
 
   $doc.title.textContent = `${news.title} - ${siteName}`;
   $doc.content.appendChild(h('section#newslist', newsToHTML(news)));
@@ -372,9 +400,18 @@ app.get("/reply/:news_id/:comment_id", async (req, res, next) => {
   if (!$user) return res.redirect('/login');
   let {news_id, comment_id} = req.params;
   let news = await getNewsById(news_id);
-  if (!news) return res.status(404).send('404 - This news does not exist.');
+  if (!news) {
+    let err = new Error('This news does not exist.');
+    err.status = 404;
+    return next(err);
+  }
+
   let comment = await global.comment.fetch(news_id, comment_id);
-  if(!comment) res.status(404).send('404 - This comment does not exist.');
+  if(!comment) {
+    let err = new Error('This comment does not exist.');
+    err.status = 404;
+    return next(err);
+  }
   let user = await getUserById(comment.user_id) || deletedUser;
 
   $doc.title.textContent = `Reply to comment - ${siteName}`;
@@ -398,13 +435,25 @@ app.get('/editcomment/:news_id/:comment_id', async (req, res, next) => {
 
   let {news_id, comment_id} = req.params;
   let news = await getNewsById(news_id);
-  if (!news) return res.status(404).send('404 - This news does not exist.');
+  if (!news) {
+    let err = new Error('This news does not exist.');
+    err.status = 404;
+    return next(err);
+  }
 
   let comment = await global.comment.fetch(news_id, comment_id);
-  if (!comment) return res.status(404).send('404 - This news does not exist.');
+  if (!comment) {
+    let err = new Error('This comment does not exist.');
+    err.status = 404;
+    return next(err);
+  }
 
   let user = await getUserById(comment.user_id) || deletedUser;
-  if (+$user.id != +user.id) return res.status(500).send('Permission denied.');
+  if (+$user.id != +user.id) {
+    let err = new Error('Permission denied.');
+    err.status = 403;
+    return next(err);
+  }
 
   $doc.title.textContent = `Edit comment - ${siteName}`;
   $doc.body.appendChild(h('script', '$(function() {$("input[name=post_comment]").click(post_comment);});'));
@@ -832,28 +881,16 @@ app.use(function(req, res, next) {
   next(err);
 });
 
-// error handlers
-
-// development error handler
-// will print stacktrace
-if (app.get('env') === 'development') {
-  app.use(function(err, req, res, next) {
-    res.status(err.status || 500);
-    res.send({
-      message: err.message,
-      error: err
-    });
-  });
-}
-
-// production error handler
-// no stacktraces leaked to user
+// error handler
 app.use(function(err, req, res, next) {
+  // only providing error in development
+  const {stack, status, message} = err;
+
+  // render the error page
   res.status(err.status || 500);
-  res.send({
-    message: err.message,
-    err: {}
-  });
+  $doc.content.appendChild(h('h2', status, ' - ', message));
+  if (app.get('env') === 'development') $doc.content.appendChild(h('pre', stack));
+  res.send($doc.outerHTML);
 });
 
 function checkApiSecret(apisecret) {
