@@ -486,7 +486,7 @@ app.get('/recompute', async (req, res) => {
 app.get('/submit', (req, res) => {
   let {t, u} = req.query;
   let bl = `javascript:window.location=%22${siteUrl}/submit?u=%22+encodeURIComponent(document.location)+%22&t=%22+encodeURIComponent(document.title)`;
-  if (!$user) return res.redirect(`/login?redirect=${_.escape(req.originalUrl)}`);
+  if (!$user) return res.redirect(`/login?redirect=${encodeURIComponent(req.originalUrl)}`);
   $doc.title.textContent = `Submit a new story - ${siteName}`;
   $doc.body.appendChild(h('script', '$(function() {$("input[name=do_submit]").click(submit);});'));
   [ h('h2', 'Submit a new story'),
