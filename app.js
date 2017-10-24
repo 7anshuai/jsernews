@@ -84,9 +84,11 @@ app.get('/latest', (req, res) => {
   res.redirect('/latest/0');
 });
 
-app.get('/latest/:start', async (req, res) => {
+app.get('/latest/:start', async (req, res, next) => {
   let {start} = req.params;
-  $h.setTitle(`Latest News - ${siteName}`);
+  start = parseInt(start);
+  if (isNaN(start)) return next();
+
   let paginate = {
     get: async (start, count) => {
       return await getLatestNews(start, count);
@@ -99,6 +101,8 @@ app.get('/latest/:start', async (req, res) => {
     link: '/latest/$'
   }
   let newslist = await listItems(paginate);
+
+  $h.setTitle(`Latest News - ${siteName}`);
   res.send($h.page(() => {
     return $h.h2('Latest News') +
       $h.section({id: 'newslist'}, newslist);
