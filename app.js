@@ -97,8 +97,11 @@ app.get('/latest', (req, res) => {
   res.redirect('/latest/0');
 });
 
-app.get('/latest/:start', async (req, res) => {
+app.get('/latest/:start', async (req, res, next) => {
   let {start} = req.params;
+  start = parseInt(start);
+  if (isNaN(start)) return next();
+
   let paginate = {
     get: async (start, count) => {
       return await getLatestNews(start, count);
