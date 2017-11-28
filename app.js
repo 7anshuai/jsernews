@@ -16,6 +16,7 @@ const _ = require('underscore');
 const debug = require('debug')('jsernews:app');
 const fetch = require('node-fetch');
 const h = require('hyperscript');
+const reds = require('reds');
 
 const {Comment, commentToHtml, computeCommentScore, getUserComments, insertComment, voteComment, renderCommentsForNews, renderCommentSubthread} = require('./comments');
 const {deletedUser, keyboardNavigation, latestNewsPerPage, passwordMinLength, passwordResetDelay, savedNewsPerPage, siteName, siteDescription, siteUrl, subthreadsInRepliesPage, userCommentsPerPage, usernameRegexp} = require('./config');
@@ -156,6 +157,64 @@ app.get('/rss', async (req, res, next) => {
     </rss>`;
 
   res.type('xml').send(rss);
+});
+
+app.get('/search', (req, res) => {
+  let {q, t} = req.query;
+  t = t || 'news';
+
+  let placeholders = ['CSS', 'ES6', 'HTTP', 'HTML5', 'JavaScript', 'Node.js', 'Webpack'];
+  let random = _.random(parseInt(placeholders.length - 1));
+  let placeholder = placeholders[random];
+  let searchtips = h('.searchtips', 'Simple full text search by ', h('a', {href: 'https://github.com/tj/reds'}, 'reds'),', only support English now.');
+
+  $doc.title.textContent = `Search News - ${siteName}`;
+  if (!q) {
+    $doc.content.appendChild(h('h2', 'Search News'));
+    $doc.content.appendChild(h('#searchform', h('form', {name: 'f', action: '/search'},
+        h('input', {type: 'hidden', name: 't', value: 'news'}),
+        h('input', {type: 'text', name: 'q', placeholder: placeholder, required: true}),
+        ' ',
+        h('input', {type: 'submit', value: 'Search'}),
+        searchtips
+      )));
+
+    return res.send($doc.outerHTML);
+  } else {
+    let search = reds.createSearch(t);
+    search.query(q).end(async (err, ids) => {
+      if (err) return next(err);
+      if (!ids.length) {
+        $doc.content.appendChild(h('h2', 'Search News'));
+        $doc.content.appendChild(h('#searchform', h('form', {name: 'f', action: '/search'},
+            h('input', {type: 'hidden', name: 't', value: 'news'}),
+            h('input', {type: 'text', name: 'q', placeholder: placeholder, required: true, value: q}),
+            ' ',
+            h('input', {type: 'submit', value: 'Search'}),
+            searchtips,
+            h('#errormsg', h('span', '"Nothing for you, Dawg."'), h('br'), h('span', '0 results'))
+          )));
+
+        return res.send($doc.outerHTML);
+      } else {
+        let news = await getNewsById(ids);
+        $doc.content.appendChild(h('h2', 'Search News'));
+        $doc.content.appendChild(h('#searchform', h('form', {name: 'f', action: '/search'},
+            h('input', {type: 'hidden', name: 't', value: 'news'}),
+            h('input', {type: 'text', name: 'q', placeholder: placeholder, required: true, value: q}),
+            ' ',
+            h('input', {type: 'submit', value: 'Search'}),
+            searchtips,
+            h('#successmsg', `Found ${ids.length} results for "${q}":`),
+            h('br')
+          )));
+        $doc.content.appendChild(newsListToHTML(news, req.query));
+
+        return res.send($doc.outerHTML);
+      }
+    });
+  }
+
 });
 
 app.get('/news/:news_id', async (req, res, next) => {
@@ -918,6 +977,7 @@ function applicationHeader () {
     ['top', '/'],
     ['latest', '/latest/0'],
     ['random', '/random'],
+    ['search', '/search'],
     ['submit', '/submit']
   ];
 
