@@ -1,5 +1,6 @@
 const _ = require('underscore');
 const debug = require('debug')('jsernews:news');
+const reds = require('reds');
 
 const {commentMaxLength, newsEditTime, newsAgePadding, newsScoreLogStart, newsScoreLogBooster, newsSubmissionBreak, newsUpvoteMinKarma, newsDownvoteMinKarma, newsUpvoteKarmaCost, newsDownvoteKarmaCost, newsUpvoteKarmaTransfered, preventRepostTime, rankAgingFactor, siteUrl, topNewsAgeLimit, latestNewsPerPage, topNewsPerPage} = require('./config');
 const {getUserById, getUserKarma, incrementUserKarmaBy, isAdmin} = require('./user');
@@ -179,6 +180,11 @@ async function editNews(news_id, title, url, text, user_id){
     title: title,
     url: url
   });
+  // Reset the reds index
+  let search = reds.createSearch('news');
+  search.remove(news_id);
+  search.index(title, news_id);
+
   return news_id;
 }
 
@@ -230,6 +236,10 @@ async function insertNews(title, url, text, user_id){
   if (!textpost) await $r.setex('url:' + url, preventRepostTime, news_id);
   // Set a timeout indicating when the user may post again
   await $r.setex(`user:${user_id}:submitted_recently`, newsSubmissionBreak, '1');
+  // Set a reds index
+  let search = reds.createSearch('news');
+  search.index(title, news_id);
+
   return news_id;
 }
 

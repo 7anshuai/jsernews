@@ -15,6 +15,7 @@ const logger = require('morgan');
 const HTMLGen = require('html5-gen');
 const _ = require('underscore');
 const debug = require('debug')('jsernews:app');
+const reds = require('reds');
 
 const {Comment, commentToHtml, computeCommentScore, getUserComments, insertComment, voteComment, renderCommentsForNews, renderCommentSubthread} = require('./comments');
 const {deletedUser, keyboardNavigation, latestNewsPerPage, passwordMinLength, passwordResetDelay, savedNewsPerPage, siteName, siteDescription, siteUrl, subthreadsInRepliesPage, userCommentsPerPage, usernameRegexp} = require('./config');
@@ -145,6 +146,62 @@ app.get('/rss', async (req, res, next) => {
     )
   );
   res.type('xml').send(rss);
+});
+
+app.get('/search', (req, res) => {
+  let {q, t} = req.query;
+  t = t || 'news';
+
+  let placeholders = ['CSS', 'ES6', 'HTTP', 'HTML5', 'JavaScript', 'Node.js', 'Webpack'];
+  let random = _.random(parseInt(placeholders.length - 1));
+  let placeholder = placeholders[random];
+  let searchtips = $h.div({class: 'searchtips'}, 'Simple full text search by <a href="https://github.com/tj/reds">reds</a>, only support English now.');
+
+  $h.setTitle(`Search News - ${siteName}`);
+  if (!q) {
+    let html = $h.page(
+      $h.h2('Search News') +
+      $h.div({id: 'searchform'}, $h.form({name: 'f', action: '/search'}, () => {
+        return $h.hidden({name: 't', value: 'news'}) +
+          $h.text({name: 'q', required: true, placeholder: placeholder}) + ' ' +
+          $h.submit({value: 'Search'}) + searchtips
+      }))
+    );
+    return res.send(html);
+  } else {
+    let search = reds.createSearch(t);
+    search.query(q).end(async (err, ids) => {
+      if (err) return next(err);
+      if (!ids.length) {
+        let html = $h.page(
+          $h.h2('Search News') +
+          $h.div({id: 'searchform'}, $h.form({name: 'f', action: '/search'}, () => {
+            return $h.hidden({name: 't', value: 'news'}) +
+              $h.text({name: 'q', required: true, placeholder: placeholder, value: q}) + ' ' +
+              $h.submit({value: 'Search'}) + searchtips +
+              $h.div({id: 'errormsg'}, () => {
+                return $h.span('“Nothing for you, Dawg.”') +
+                  $h.div('0 results');
+              })
+          }))
+        );
+        return res.send(html);
+      } else {
+        let news = await getNewsById(ids);
+        let html = $h.page(
+          $h.h2('Search News') +
+          $h.div({id: 'searchform'}, $h.form({name: 'f', action: '/search'}, () => {
+            return $h.hidden({name: 't', value: 'news'}) +
+              $h.text({name: 'q', required: true, placeholder: placeholder, value: q}) + ' ' +
+              $h.submit({value: 'Search'}) +
+              $h.div({id: 'successmsg'}, `Found ${ids.length} results for "${q}":`) + $h.br();
+          }))  + newsListToHTML(news, req.query)
+        );
+        return res.send(html);
+      }
+    });
+  }
+
 });
 
 app.get('/news/:news_id', async (req, res, next) => {
@@ -810,6 +867,7 @@ function applicationHeader() {
     ['top', '/'],
     ['latest', '/latest/0'],
     ['random', '/random'],
+    ['search', '/search'],
     ['submit', '/submit']
   ];
 

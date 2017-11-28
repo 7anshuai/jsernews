@@ -115,6 +115,19 @@ div #errormsg {
     margin-top: 15px;
 }
 
+div #successmsg {
+    width:400px;
+    color:#666;
+    font-weight:bold;
+    margin-top: 15px;
+}
+
+div.searchtips {
+    color: #999;
+    font-size: 14px;
+    margin-top: 15px;
+}
+
 article {
     display: block;
     font-size: 16px;
