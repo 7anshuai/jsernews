@@ -637,12 +637,12 @@ app.get('/set-new-password', async (req, res, next) => {
 });
 
 // API implementation
-app.get('/api/login', async (req, res) => {
-  let params = req.query;
-  if (!checkParams(params, 'username', 'password'))
+app.post('/api/login', async (req, res) => {
+  if (!checkParams(req.body, 'username', 'password'))
     return res.json({status: 'err', error: 'Username and password are two required fields.'});
 
-  let [auth, apisecret] = await checkUserCredentials(params.username, params.password) || [];
+  let {username, password} = req.body;
+  let [auth, apisecret] = await checkUserCredentials(username, password) || [];
   res.json(auth ? {status: 'ok', auth: auth, apisecret: apisecret} : {status: 'err', error: 'No match for the specified username / password pair.'});
 });
 
