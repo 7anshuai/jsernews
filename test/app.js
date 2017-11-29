@@ -81,7 +81,7 @@ describe('APP Routes', function () {
   });
 
   it('should get a login err', done => {
-    agent.get('/api/login')
+    agent.post('/api/login')
       .send({
         username: 'ts',
         password: '123456'
@@ -96,7 +96,11 @@ describe('APP Routes', function () {
   });
 
 it('should login successfully', done => {
-    agent.get('/api/login?username=ts&password=password')
+    agent.post('/api/login')
+      .send({
+        username: 'ts',
+        password: 'password'
+      })
       .set('Accept', 'application/json')
       .expect(200)
       .end((err, res) => {
