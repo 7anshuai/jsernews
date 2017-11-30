@@ -3,7 +3,7 @@ const Redis = require('ioredis');
 
 const {redisURL} = require('./config');
 
-function setupRedis(uri=redisURL || 'redis://127.0.0.1:6379') {
+function setupRedis(uri = redisURL || 'redis://127.0.0.1:6379') {
   uri = url.parse(uri);
   return new Redis({
     port: uri.port,
@@ -13,4 +13,4 @@ function setupRedis(uri=redisURL || 'redis://127.0.0.1:6379') {
   });
 }
 
-module.exports = setupRedis(redisURL);
+module.exports = setupRedis(process.env.REDIS_URI || redisURL);
