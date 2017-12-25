@@ -1,5 +1,7 @@
 # jsernews
 
+[![Build Status](https://travis-ci.org/7anshuai/jsernews.svg?branch=master)](https://travis-ci.org/7anshuai/jsernews)
+
 I have run a site [jsernews](https://jsernews.com) using [lamernews](https://github.com/antirez/lamernews) source code for a long time.
 
 I've plan to hack on jsernews with Node.js/Express/Redis/jQuery in my free time for a long time too.
