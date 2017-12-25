@@ -1,17 +1,17 @@
 version: '2'
 services:
-    redis:
-        image: redis
-    web:
-        build: .
-        ports:
-         - "3000:3000"
-        environment:
-         - REDIS_URI=redis://redis:6379
-        links:
-         - redis
-        depends_on:
-         - redis
-        volumes:
-         - .:/jsernews
-         - /jsernews/node_modules
+  redis:
+    image: redis
+  web:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - REDIS_URI=redis://redis:6379
+    links:
+      - redis
+    depends_on:
+      - redis
+    volumes:
+      - .:/jsernews
+      - /jsernews/node_modules
