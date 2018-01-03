@@ -1,6 +1,6 @@
 const should = require('should');
 const redis = require('../redis');
-const {getNewsById, delNews, editNews, insertNews, voteNews} = require('../news');
+const {getNewsById, getNewsText,  delNews, editNews, insertNews, voteNews} = require('../news');
 const {createUser, incrementUserKarmaBy} = require('../user');
 
 describe('News', () => {
@@ -20,6 +20,11 @@ describe('News', () => {
   it('should insert a new with text', async () => {
     let newsId = await insertNews('JSer News', '', 'An LN(lamer news) style social news site written in Node/Express/Redis/jQuery', 1);
     newsId.should.equal(2);
+  });
+
+  it('should get news text correctly', async () => {
+    let news = await getNewsById(2);
+    getNewsText(news).should.equal('An LN(lamer news) style social news site written in Node/Express/Redis/jQuery');
   });
 
   it('should get news by id', async () => {

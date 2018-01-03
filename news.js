@@ -133,7 +133,7 @@ function getNewsDomain(news){
 // inside. Otherwise nil is returned.
 function getNewsText(news){
   let su = news.url.split('/');
-  return (su[0] == 'text:') ? news.url.substring(7, news.url.length - 1) : null;
+  return (su[0] == 'text:') ? news.url.substring(7, news.url.length) : null;
 }
 
 // Mark an existing news as removed.
