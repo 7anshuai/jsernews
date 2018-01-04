@@ -78,6 +78,6 @@ async function sendMail(relay, from, to, subject, body, opt={}){
 }
 
 module.exports = {
-  isValidEmail: isValidEmail,
-  sendMail: sendMail
+  isValidEmail,
+  sendMail
 }

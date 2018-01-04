@@ -432,20 +432,20 @@ async function getPostedNews(user_id, start, count){
 }
 
 module.exports = {
-  computeNewsRank: computeNewsRank,
-  computeNewsScore: computeNewsScore,
-  getNewsById: getNewsById,
-  getTopNews: getTopNews,
-  getLatestNews: getLatestNews,
-  getNewsDomain: getNewsDomain,
-  getNewsText: getNewsText,
-  getSavedNews: getSavedNews,
-  getPostedNews: getPostedNews,
-  delNews: delNews,
-  editNews: editNews,
-  insertNews: insertNews,
-  voteNews: voteNews,
-  newsToHTML: newsToHTML,
-  newsListToHTML: newsListToHTML,
-  newsListToRSS: newsListToRSS
+  computeNewsRank,
+  computeNewsScore,
+  getNewsById,
+  getTopNews,
+  getLatestNews,
+  getNewsDomain,
+  getNewsText,
+  getSavedNews,
+  getPostedNews,
+  delNews,
+  editNews,
+  insertNews,
+  voteNews,
+  newsToHTML,
+  newsListToHTML,
+  newsListToRSS
 }

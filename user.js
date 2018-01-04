@@ -1,8 +1,9 @@
 const {pbkdf2} = require('crypto');
+
 const _ = require('underscore');
-const {karmaIncrementAmount, karmaIncrementInterval, mailRelay, mailFrom, PBKDF2Iterations, userCreationDelay, userInitialKarma} = require('./config')
 const debug = require('debug')('jsernews:user');
 
+const {karmaIncrementAmount, karmaIncrementInterval, mailRelay, mailFrom, PBKDF2Iterations, userCreationDelay, userInitialKarma} = require('./config')
 const {sendMail} = require('./mail');
 const $r = require('./redis');
 const {getRand, numElapsed} = require('./utils');
@@ -269,19 +270,19 @@ async function sendResetPasswordEmail(user, url){
 }
 
 module.exports = {
-  addFlags: addFlags,
-  authUser: authUser,
-  createUser: createUser,
-  createGitHubUser: createGitHubUser,
-  updateAuthToken: updateAuthToken,
-  checkUserCredentials: checkUserCredentials,
-  getUserById: getUserById,
-  getUserByUsername: getUserByUsername,
-  getUserKarma: getUserKarma,
-  hashPassword: hashPassword,
-  hasFlags: hasFlags,
-  isAdmin: isAdmin,
-  incrementKarmaIfNeeded: incrementKarmaIfNeeded,
-  incrementUserKarmaBy: incrementUserKarmaBy,
-  sendResetPasswordEmail: sendResetPasswordEmail
+  addFlags,
+  authUser,
+  createUser,
+  createGitHubUser,
+  updateAuthToken,
+  checkUserCredentials,
+  getUserById,
+  getUserByUsername,
+  getUserKarma,
+  hashPassword,
+  hasFlags,
+  isAdmin,
+  incrementKarmaIfNeeded,
+  incrementUserKarmaBy,
+  sendResetPasswordEmail
 }

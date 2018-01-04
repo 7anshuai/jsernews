@@ -304,13 +304,13 @@ function urlsToLinks(s) {
 }
 
 module.exports = {
-  Comment: Comment,
-  commentToHtml: commentToHtml,
-  computeCommentScore: computeCommentScore,
-  getUserComments: getUserComments,
-  insertComment: insertComment,
-  voteComment: voteComment,
-  renderCommentsForNews: renderCommentsForNews,
-  renderCommentSubthread: renderCommentSubthread,
-  urlsToLinks: urlsToLinks
+  Comment,
+  commentToHtml,
+  computeCommentScore,
+  getUserComments,
+  insertComment,
+  voteComment,
+  renderCommentsForNews,
+  renderCommentSubthread,
+  urlsToLinks
 }
