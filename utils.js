@@ -57,9 +57,9 @@ function strElapsed(t){
 }
 
 module.exports = {
-  checkParams: checkParams,
-  getRand: getRand,
-  hexdigest: hexdigest,
-  numElapsed: numElapsed,
-  strElapsed: strElapsed
+  checkParams,
+  getRand,
+  hexdigest,
+  numElapsed,
+  strElapsed
 }
