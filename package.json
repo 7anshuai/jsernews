@@ -13,8 +13,11 @@
     "url": "https://github.com/7anshuai/jsernews.git"
   },
   "keywords": [
-    "javascript",
-    "news"
+    "javascript news",
+    "lamer news",
+    "social news",
+    "redis",
+    "Node.js"
   ],
   "author": "7anshuai",
   "license": "MIT",
