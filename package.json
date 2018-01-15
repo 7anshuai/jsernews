@@ -7,6 +7,7 @@
     "debug": "cross-env DEBUG=jsernews:* node bin/www",
     "start": "node bin/www",
     "lint": "eslint *.js",
+    "pretest": "npm run lint",
     "test": "cross-env NODE_ENV=test mocha"
   },
   "repository": {
