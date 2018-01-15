@@ -47,7 +47,7 @@ async function getNewsById(news_ids, opt={}) {
   })).exec();
 
   result.forEach((n, i) => {
-    n["username"] = usernames[i][1] || 'deleted_user';
+    n['username'] = usernames[i][1] || 'deleted_user';
   });
 
   // Load $User vote information if we are in the context of a
@@ -63,9 +63,9 @@ async function getNewsById(news_ids, opt={}) {
     let votes = await $r.pipeline(commands).exec();
     result.forEach((n, i) => {
       if (votes[i*2][1])
-        n["voted"] = 'up';
+        n['voted'] = 'up';
       else if (votes[(i*2)+1][1])
-        n["voted"] = 'down';
+        n['voted'] = 'down';
     });
   }
 
@@ -119,15 +119,15 @@ async function updateNewsRankIfNeeded(n){
   if (delta_rank > 0.000001){
     await $r.hmset(`news:${n.id}`, 'rank', real_rank);
     await $r.zadd('news.top', real_rank, n.id);
-    n.rank = real_rank
+    n.rank = real_rank;
   }
 }
 
 // Return the host part of the news URL field.
 // If the url is in the form text:// nil is returned.
 function getNewsDomain(news){
-  let su = news["url"].split("/");
-  return (su[0] == "text:") ? null : su[2];
+  let su = news['url'].split('/');
+  return (su[0] == 'text:') ? null : su[2];
 }
 
 // Assuming the news has an url in the form text:// returns the text
@@ -144,8 +144,8 @@ async function delNews(news_id, user_id){
   if (!(parseInt(news.ctime) > (numElapsed() - newsEditTime)) && !isAdmin($user)) return false;
 
   await $r.hmset(`news:${news_id}`, 'del', 1);
-  await $r.zrem("news.top", news_id);
-  await $r.zrem("news.cron", news_id);
+  await $r.zrem('news.top', news_id);
+  await $r.zrem('news.cron', news_id);
   return true;
 }
 
@@ -163,18 +163,18 @@ async function editNews(news_id, title, url, text, user_id){
   // If we don't have an url but a comment, we turn the url into
   // text://....first comment..., so it is just a special case of
   // title+url anyway.
-  let textpost = url.length == 0
+  let textpost = url.length == 0;
   if (textpost)
     url = 'text://' + text.substring(0, commentMaxLength);
   // Even for edits don't allow to change the URL to the one of a
   // recently posted news.
   if (!textpost && url != news.url) {
-      if (await $r.get('url:' + url)) return false;
-      // No problems with this new url, but the url changed
-      // so we unblock the old one and set the block in the new one.
-      // Otherwise it is easy to mount a DOS attack.
-      await $r.del('url:' + news.url);
-      if (!textpost) await $r.setex('url:' + url, preventRepostTime, news_id);
+    if (await $r.get('url:' + url)) return false;
+    // No problems with this new url, but the url changed
+    // so we unblock the old one and set the block in the new one.
+    // Otherwise it is easy to mount a DOS attack.
+    await $r.del('url:' + news.url);
+    if (!textpost) await $r.setex('url:' + url, preventRepostTime, news_id);
   }
   // Edit the news fields.
   await $r.hmset(`news:${news_id}`,{
@@ -203,15 +203,15 @@ async function insertNews(title, url, text, user_id){
   // title+url anyway.
   let textpost = url.length == 0;
   if (textpost)
-    url = "text://" + text.substring(0, commentMaxLength);
+    url = 'text://' + text.substring(0, commentMaxLength);
 
   // Check for already posted news with the same URL.
-  let id = await $r.get(`url:` + url);
+  let id = await $r.get('url:' + url);
   if (!textpost && id) return parseInt(id);
 
   // We can finally insert the news.
   let ctime = numElapsed();
-  let news_id = await $r.incr("news.count");
+  let news_id = await $r.incr('news.count');
   await $r.hmset(`news:${news_id}`, {
     id: news_id,
     title: title,
@@ -227,6 +227,7 @@ async function insertNews(title, url, text, user_id){
 
   // The posting user virtually upvoted the news posting it
   let [rank, error] = await voteNews(news_id, user_id, 'up');
+  if (error) debug(error);
   // Add the news to the user submitted news
   await $r.zadd(`user.posted:${user_id}`, ctime, news_id);
   // Add the news into the chronological view
@@ -298,7 +299,7 @@ async function voteNews(news_id, user_id, vote_type){
     'score': score,
     'rank': rank
   });
-  await $r.zadd("news.top", rank, news_id);
+  await $r.zadd('news.top', rank, news_id);
 
   // Remove some karma to the user if needed, and transfer karma to the
   // news owner in the case of an upvote.
@@ -322,29 +323,29 @@ function newsToHTML (news, opt) {
   let domain = getNewsDomain(news);
   news = Object.assign({}, news); // Copy the object so we can modify it as we wish.
   if (!domain) news.url = `/news/${news.id}`;
-  let upclass = "uparrow";
-  let downclass = "downarrow";
-  if (news["voted"] == 'up') {
-    upclass += " voted";
-    downclass += " disabled";
-  } else if (news["voted"] == 'down') {
-    downclass += " voted";
-    upclass += " disabled";
+  let upclass = 'uparrow';
+  let downclass = 'downarrow';
+  if (news['voted'] == 'up') {
+    upclass += ' voted';
+    downclass += ' disabled';
+  } else if (news['voted'] == 'down') {
+    downclass += ' voted';
+    upclass += ' disabled';
   }
   return h('article', {'data-news-id': news.id},
-      h('a', {href: '#up', class: upclass}, '▲'), ' ',
-      h('h3', h('a', {href: news.url, rel: 'nofollow'}, _.escape(news.title))), ' ',
-      h('address', (domain ? `at ${_.escape(domain)}` : ''), (($user && $user.id == news.user_id && news.ctime > (numElapsed() - newsEditTime)) ? [' ', h('a', {href: `/editnews/${news.id}`}, '[edit]')] : '')),
-      h('a', {href: '#down', class: downclass}, '▼'),
-      h('p', h('span', {class: 'upvotes'}, `${news.up}`), ' up and ',
-          h('span', {class: 'downvotes'}, `${news.down}`), ' down, posted by ',
-          h('a', {href: `/user/${encodeURIComponent(news.username)}`}, _.escape(news.username)), ' ', strElapsed(news.ctime), ' ',
-          h('a', {href: `/news/${news.id}`}, parseInt(news.comments) != 0 ? `${news.comments} comment${news.comments > 1 ? 's' : ''}` : 'discuss'), ($user && isAdmin($user)
-            ? [' - ', h('a', {href: `/editnews/${news.id}`}, 'edit'), ' - ', h('a', {href: `https://twitter.com/intent/tweet?url=${siteUrl}/news/${news.id}&text=${encodeURIComponent(news.title)} - `}, 'tweet')]
-            : '')
-      ), (opt && opt.debug && $user && isAdmin($user)
-        ? ` id: ${news.id} score: ${news.score} rank: ${computeNewsRank(news)} zset_rank: `
+    h('a', {href: '#up', class: upclass}, '▲'), ' ',
+    h('h3', h('a', {href: news.url, rel: 'nofollow'}, _.escape(news.title))), ' ',
+    h('address', (domain ? `at ${_.escape(domain)}` : ''), (($user && $user.id == news.user_id && news.ctime > (numElapsed() - newsEditTime)) ? [' ', h('a', {href: `/editnews/${news.id}`}, '[edit]')] : '')),
+    h('a', {href: '#down', class: downclass}, '▼'),
+    h('p', h('span', {class: 'upvotes'}, `${news.up}`), ' up and ',
+      h('span', {class: 'downvotes'}, `${news.down}`), ' down, posted by ',
+      h('a', {href: `/user/${encodeURIComponent(news.username)}`}, _.escape(news.username)), ' ', strElapsed(news.ctime), ' ',
+      h('a', {href: `/news/${news.id}`}, parseInt(news.comments) != 0 ? `${news.comments} comment${news.comments > 1 ? 's' : ''}` : 'discuss'), ($user && isAdmin($user)
+        ? [' - ', h('a', {href: `/editnews/${news.id}`}, 'edit'), ' - ', h('a', {href: `https://twitter.com/intent/tweet?url=${siteUrl}/news/${news.id}&text=${encodeURIComponent(news.title)} - `}, 'tweet')]
         : '')
+    ), (opt && opt.debug && $user && isAdmin($user)
+      ? ` id: ${news.id} score: ${news.score} rank: ${computeNewsRank(news)} zset_rank: `
+      : '')
   );
 }
 
@@ -426,9 +427,9 @@ async function getSavedNews(user_id, start, count) {
 
 // Get news posted by the specified user
 async function getPostedNews(user_id, start, count){
-    let numitems = + await $r.zcard(`user.posted:${user_id}`);
-    let news_ids = await $r.zrevrange(`user.posted:${user_id}`, start, start + (count - 1));
-    return [await getNewsById(news_ids), numitems];
+  let numitems = + await $r.zcard(`user.posted:${user_id}`);
+  let news_ids = await $r.zrevrange(`user.posted:${user_id}`, start, start + (count - 1));
+  return [await getNewsById(news_ids), numitems];
 }
 
 module.exports = {
@@ -448,4 +449,4 @@ module.exports = {
   newsToHTML,
   newsListToHTML,
   newsListToRSS
-}
+};

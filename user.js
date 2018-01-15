@@ -3,7 +3,7 @@ const {pbkdf2} = require('crypto');
 const _ = require('underscore');
 const debug = require('debug')('jsernews:user');
 
-const {karmaIncrementAmount, karmaIncrementInterval, mailRelay, mailFrom, PBKDF2Iterations, userCreationDelay, userInitialKarma} = require('./config')
+const {karmaIncrementAmount, karmaIncrementInterval, mailRelay, mailFrom, PBKDF2Iterations, userCreationDelay, userInitialKarma} = require('./config');
 const {sendMail} = require('./mail');
 const $r = require('./redis');
 const {getRand, numElapsed} = require('./utils');
@@ -20,7 +20,7 @@ async function authUser(auth){
   if (!auth) return;
   let id = await $r.get(`auth:${auth}`);
   if (!id) return;
-  let user = await $r.hgetall(`user:${id}`)
+  let user = await $r.hgetall(`user:${id}`);
   return user && user.id ? user : null;
 }
 
@@ -52,12 +52,12 @@ async function updateAuthToken(user){
 async function createUser(username, password, opt){
   let isExists = await $r.exists(`username.to.id:${username.toLowerCase()}`);
   if (isExists)
-    return [null, null, "Username is already taken, please try a different one."];
+    return [null, null, 'Username is already taken, please try a different one.'];
 
-  if (await rateLimitByIP(userCreationDelay, "create_user", opt.ip))
-    return [null, null, "Please wait some time before creating a new user."];
+  if (await rateLimitByIP(userCreationDelay, 'create_user', opt.ip))
+    return [null, null, 'Please wait some time before creating a new user.'];
 
-  let id = await $r.incr("users.count");
+  let id = await $r.incr('users.count');
   let auth_token = await getRand();
   let apisecret = await getRand();
   let salt = await getRand();
@@ -117,7 +117,7 @@ async function createGitHubUser(github_user = {}){
 
     return [user.auth, user.apisecret, null];
   } else {
-    let id = await $r.incr("users.count")
+    let id = await $r.incr('users.count');
     let auth_token = await getRand();
     let apisecret = await getRand();
     let password = await getRand();
@@ -170,7 +170,7 @@ async function incrementUserKarmaBy(user_id, increment){
   let userkey = `user:${user_id}`;
   await $r.hincrby(userkey, 'karma', increment);
   if ($user && ($user.id == user_id))
-      $user.karma = parseInt($user.karma) + increment;
+    $user.karma = parseInt($user.karma) + increment;
 }
 
 // Return the specified user karma.
@@ -245,7 +245,7 @@ function hasFlags(user, flags){
 }
 
 function isAdmin(user){
-  return hasFlags(user, "a");
+  return hasFlags(user, 'a');
 }
 
 // Generic API limiting function
@@ -258,11 +258,11 @@ async function rateLimitByIP(delay, ...tags) {
 
 async function sendResetPasswordEmail(user, url){
   if (!mailRelay || !mailFrom) return false;
-  let aux = url.split("/");
+  let aux = url.split('/');
   if (aux.length < 3) return false;
-  let current_domain = aux[0] + "//" + aux[2];
+  let current_domain = aux[0] + '//' + aux[2];
 
-  let reset_link = `${current_domain}/set-new-password?username=${encodeURIComponent(user.username)}&auth=${encodeURIComponent(user.auth)}`
+  let reset_link = `${current_domain}/set-new-password?username=${encodeURIComponent(user.username)}&auth=${encodeURIComponent(user.auth)}`;
 
   let subject = `${aux[2]} password reset`;
   let message = `You can reset your password here: ${reset_link}`;
@@ -285,4 +285,4 @@ module.exports = {
   incrementKarmaIfNeeded,
   incrementUserKarmaBy,
   sendResetPasswordEmail
-}
+};

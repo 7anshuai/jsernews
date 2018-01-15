@@ -48,7 +48,7 @@ function strElapsed(t){
   let seconds = parseInt(numElapsed() - t);
   if (seconds <= 1) return 'now';
 
-  let time_lengths = [[86400, "day"], [3600, "hour"], [60, "minute"], [1, "second"]];
+  let time_lengths = [[86400, 'day'], [3600, 'hour'], [60, 'minute'], [1, 'second']];
   let [length, label] = time_lengths.filter((item) => {
     return seconds >= item[0];
   })[0];
@@ -62,4 +62,4 @@ module.exports = {
   hexdigest,
   numElapsed,
   strElapsed
-}
+};

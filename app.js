@@ -5,7 +5,6 @@
 'use strict';
 
 const path = require('path');
-const url = require('url');
 
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -44,12 +43,12 @@ app.use(async (req, res, next) => {
 
   // Create a global `HTMLElement`
   let head = h('head',
-      h('meta', {charset: 'utf-8'}),
-      h('meta', {content: 'width=device-width, initial-scale=1, maximum-scale=1', name: 'viewport'}),
-      h('meta', {content: 'index', name: 'robots'}),
-      h('title', `${siteName} - ${siteDescription}`),
-      h('link', {href: '/favicon.ico', rel: 'shortcut icon'}),
-      h('link', {href: `/css/style.css?v=${version}`, rel: 'stylesheet'}));
+    h('meta', {charset: 'utf-8'}),
+    h('meta', {content: 'width=device-width, initial-scale=1, maximum-scale=1', name: 'viewport'}),
+    h('meta', {content: 'index', name: 'robots'}),
+    h('title', `${siteName} - ${siteDescription}`),
+    h('link', {href: '/favicon.ico', rel: 'shortcut icon'}),
+    h('link', {href: `/css/style.css?v=${version}`, rel: 'stylesheet'}));
   let content = h('section#content');
   global.$doc = h('html',
     head,
@@ -67,7 +66,7 @@ app.use(async (req, res, next) => {
   $doc.body = $doc.childNodes[1];
   $doc.content = content;
 
-  if (!global.comment) global.comment = new Comment($r, 'comment', (c, level) => {
+  if (!global.comment) global.comment = new Comment($r, 'comment', (c) => {
     return c.sort((a, b) => {
       let ascore = computeCommentScore(a);
       let bscore = computeCommentScore(b);
@@ -87,7 +86,7 @@ app.use(async (req, res, next) => {
 });
 
 app.get('/', async (req, res) => {
-  let [news, numitems] = await getTopNews();
+  let [news] = await getTopNews();
 
   $doc.content.appendChild(h('h2', 'Top News'));
   $doc.content.appendChild(newsListToHTML(news, req.query));
@@ -113,7 +112,7 @@ app.get('/latest/:start', async (req, res, next) => {
     start: start,
     perpage: latestNewsPerPage,
     link: '/latest/$'
-  }
+  };
   let newslist = await listItems(paginate);
   $doc.title.textContent = `Latest News - ${siteName}`;
   $doc.content.appendChild(h('h2', 'Latest News'));
@@ -128,25 +127,25 @@ app.get('/random', async (req, res) => {
   res.redirect(await $r.exists(`news:${random}`) ? `/news/${random}` : `/news/${counter}`);
 });
 
-app.get('/replies', async (req, res, next) => {
+app.get('/replies', async (req, res) => {
   if (!$user) return res.redirect('/login');
-  let [comments, count] = await getUserComments($user.id, 0, subthreadsInRepliesPage);
+  let [comments] = await getUserComments($user.id, 0, subthreadsInRepliesPage);
 
   $doc.title.textContent = `Your threads - ${siteName}`;
   $doc.content.appendChild(h('h2', 'Your threads'));
   $doc.content.appendChild(h('#comments', await (async () => {
     let aux = [];
-      for (let c of comments) {
-        aux.push(await renderCommentSubthread(c));
-      }
-      await $r.hset(`user:${$user.id}`, 'replies', 0);
-      return aux;
+    for (let c of comments) {
+      aux.push(await renderCommentSubthread(c));
+    }
+    await $r.hset(`user:${$user.id}`, 'replies', 0);
+    return aux;
   })()));
   res.send($doc.outerHTML);
 });
 
-app.get('/rss', async (req, res, next) => {
-  let [news, numitems] = await getLatestNews();
+app.get('/rss', async (req, res) => {
+  let [news] = await getLatestNews();
   let rss = `<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
       <channel>
         <title>${siteName}</title>
@@ -159,7 +158,7 @@ app.get('/rss', async (req, res, next) => {
   res.type('xml').send(rss);
 });
 
-app.get('/search', (req, res) => {
+app.get('/search', (req, res, next) => {
   let {q, t} = req.query;
   t = t || 'news';
 
@@ -172,12 +171,12 @@ app.get('/search', (req, res) => {
   if (!q) {
     $doc.content.appendChild(h('h2', 'Search News'));
     $doc.content.appendChild(h('#searchform', h('form', {name: 'f', action: '/search'},
-        h('input', {type: 'hidden', name: 't', value: 'news'}),
-        h('input', {type: 'text', name: 'q', placeholder: placeholder, required: true}),
-        ' ',
-        h('input', {type: 'submit', value: 'Search'}),
-        searchtips
-      )));
+      h('input', {type: 'hidden', name: 't', value: 'news'}),
+      h('input', {type: 'text', name: 'q', placeholder: placeholder, required: true}),
+      ' ',
+      h('input', {type: 'submit', value: 'Search'}),
+      searchtips
+    )));
 
     return res.send($doc.outerHTML);
   } else {
@@ -187,27 +186,27 @@ app.get('/search', (req, res) => {
       if (!ids.length) {
         $doc.content.appendChild(h('h2', 'Search News'));
         $doc.content.appendChild(h('#searchform', h('form', {name: 'f', action: '/search'},
-            h('input', {type: 'hidden', name: 't', value: 'news'}),
-            h('input', {type: 'text', name: 'q', placeholder: placeholder, required: true, value: q}),
-            ' ',
-            h('input', {type: 'submit', value: 'Search'}),
-            searchtips,
-            h('#errormsg', h('span', '"Nothing for you, Dawg."'), h('br'), h('span', '0 results'))
-          )));
+          h('input', {type: 'hidden', name: 't', value: 'news'}),
+          h('input', {type: 'text', name: 'q', placeholder: placeholder, required: true, value: q}),
+          ' ',
+          h('input', {type: 'submit', value: 'Search'}),
+          searchtips,
+          h('#errormsg', h('span', '"Nothing for you, Dawg."'), h('br'), h('span', '0 results'))
+        )));
 
         return res.send($doc.outerHTML);
       } else {
         let news = await getNewsById(ids);
         $doc.content.appendChild(h('h2', 'Search News'));
         $doc.content.appendChild(h('#searchform', h('form', {name: 'f', action: '/search'},
-            h('input', {type: 'hidden', name: 't', value: 'news'}),
-            h('input', {type: 'text', name: 'q', placeholder: placeholder, required: true, value: q}),
-            ' ',
-            h('input', {type: 'submit', value: 'Search'}),
-            searchtips,
-            h('#successmsg', `Found ${ids.length} results for "${q}":`),
-            h('br')
-          )));
+          h('input', {type: 'hidden', name: 't', value: 'news'}),
+          h('input', {type: 'text', name: 'q', placeholder: placeholder, required: true, value: q}),
+          ' ',
+          h('input', {type: 'submit', value: 'Search'}),
+          searchtips,
+          h('#successmsg', `Found ${ids.length} results for "${q}":`),
+          h('br')
+        )));
         $doc.content.appendChild(newsListToHTML(news, req.query));
 
         return res.send($doc.outerHTML);
@@ -230,12 +229,12 @@ app.get('/news/:news_id', async (req, res, next) => {
   let user, top_comment;
   if (!getNewsDomain(news) && !news.del) {
     let c = {
-        body: getNewsText(news),
-        ctime: news.ctime,
-        user_id: news.user_id,
-        thread_id: news.id,
-        topcomment: true
-    }
+      body: getNewsText(news),
+      ctime: news.ctime,
+      user_id: news.user_id,
+      thread_id: news.id,
+      topcomment: true
+    };
     user = await getUserById(news.user_id) || deletedUser;
     top_comment = h('.topcomment', commentToHtml(c, user));
   }
@@ -296,7 +295,7 @@ app.get('/editnews/:news_id', async (req, res, next) => {
       h('textarea', {id: 'text', name: 'text', cols: 60, rows: 10}, _.escape(text)), h('br'),
       h('input', {name: 'del', value: '1', type: 'checkbox'}), 'delete this news', h('br'),
       h('input', {name: 'edit_news', value: 'Edit news', type: 'submit'})
-  ));
+    ));
 
   [newsToHTML(news), form, h('#errormsg')].forEach(node => {
     $doc.content.appendChild(node);
@@ -322,9 +321,9 @@ app.get('/user/:username', async (req, res, next) => {
   $doc.title.textContent = `${user.username} - ${siteName}`;
   $doc.content.appendChild(h('.userinfo',
     h('span', {class: 'avatar'}, (() => {
-        let email = user.email || '';
-        let digest = hexdigest(email);
-        return h('img', {src: `//gravatar.com/avatar/${digest}?s=48&d=mm`});
+      let email = user.email || '';
+      let digest = hexdigest(email);
+      return h('img', {src: `//gravatar.com/avatar/${digest}?s=48&d=mm`});
     })()),
     h('h2', _.escape(user.username)),
     h('pre', _.escape(user.about)),
@@ -370,7 +369,7 @@ app.get('/usernews/:username/:start', async (req, res, next) => {
     start: start,
     perpage: savedNewsPerPage,
     link: `/usernews/${_.escape(user.username)}/$`
-  }
+  };
   let newslist = await listItems(paginate);
 
   $doc.title.textContent = `News posted by ${user.username} - ${siteName}`;
@@ -394,7 +393,7 @@ app.get('/saved/:start', async (req, res, next) => {
     start: start,
     perpage: savedNewsPerPage,
     link: '/saved/$'
-  }
+  };
   let newslist = await listItems(paginate);
   $doc.title.textContent = `Saved news - ${siteName}`;
   $doc.content.appendChild(h('h2', 'You saved News'));
@@ -423,7 +422,7 @@ app.get('/usercomments/:username/:start', async (req, res, next) => {
     start: start,
     perpage: userCommentsPerPage,
     link: `/usercomments/${_.escape(user.username)}/$`
-  }
+  };
 
   $doc.title.textContent = `${user.username} comments - ${siteName}`;
   $doc.content.appendChild(h('h2', `${_.escape(user.username)} comments`));
@@ -458,7 +457,7 @@ app.get('/comment/:news_id/:comment_id', async (req, res, next) => {
   res.send($doc.outerHTML);
 });
 
-app.get("/reply/:news_id/:comment_id", async (req, res, next) => {
+app.get('/reply/:news_id/:comment_id', async (req, res, next) => {
   if (!$user) return res.redirect('/login');
   let {news_id, comment_id} = req.params;
   let news = await getNewsById(news_id);
@@ -535,7 +534,7 @@ app.get('/editcomment/:news_id/:comment_id', async (req, res, next) => {
   res.send($doc.outerHTML);
 });
 
-app.get('/about', (req, res, next) => {
+app.get('/about', (req, res) => {
   $doc.title.textContent = `About - ${siteName}`;
   $doc.content.appendChild(h('#about',
     h('h2', `${siteName}`),
@@ -557,7 +556,7 @@ app.get('/about', (req, res, next) => {
   res.send($doc.outerHTML);
 });
 
-app.get('/admin', async (req, res, next) => {
+app.get('/admin', async (req, res) => {
   if(!$user || !isAdmin($user)) return res.redirect('/');
   let user_count = await $r.get('users.count');
   let news_count = await $r.zcard('news.cron');
@@ -584,10 +583,10 @@ app.get('/recompute', async (req, res) => {
   let range = await $r.zrange('news.cron', 0, -1);
   for (let news_id of range) {
     let news = await getNewsById(news_id);
-    let score = await computeNewsScore(news)
-    let rank = computeNewsRank(news)
-    await $r.hmset(`news:${news_id}`, 'score', score, 'rank', rank)
-    await $r.zadd('news.top', rank, news_id)
+    let score = await computeNewsScore(news);
+    let rank = computeNewsRank(news);
+    await $r.hmset(`news:${news_id}`, 'score', score, 'rank', rank);
+    await $r.zadd('news.top', rank, news_id);
   }
 
   $doc.content.appendChild(h('p', 'Done.'));
@@ -616,7 +615,7 @@ app.get('/submit', (req, res) => {
     ),
     h('div', {id: 'errormsg'}),
     h('p', 'Submitting news is simpler using the ', h('a', {href: bl}, 'bookmarklet'),
-        ' (drag the link to your browser toolbar)')
+      ' (drag the link to your browser toolbar)')
   ].forEach(node => {
     $doc.content.appendChild(node);
   });
@@ -651,20 +650,20 @@ app.get('/logout', async (req, res) => {
   res.redirect('/');
 });
 
-app.get('/reset-password', (req, res, next) => {
+app.get('/reset-password', (req, res) => {
   $doc.title.textContent = `Reset Password - ${siteName}`;
   $doc.body.appendChild(h('script', '$(function() {$("form[name=f]").submit(reset_password);});'));
   [ h('p', 'Welcome to the password reset procedure. Please specify the username and the email address you used to register to the site. ', h('br'),
     h('b', 'Note that if you did not specify an email it is impossible for you to recover your password.')),
-    h('div', {id: 'login'},
-      h('form', {name: 'f'},
-        h('label', {for: 'username'}, 'username'),
-        h('input', {id: 'username', name:'username', type: 'text'}),
-        h('label', {for: 'email'}, 'email'),
-        h('input', {id: 'email', name: 'email', type: 'email'}), h('br'),
-        h('input', {name: 'do_reset', type: 'submit', value: 'Reset password'})
-      )
-    ), h('div', {id: 'errormsg'})
+  h('div', {id: 'login'},
+    h('form', {name: 'f'},
+      h('label', {for: 'username'}, 'username'),
+      h('input', {id: 'username', name:'username', type: 'text'}),
+      h('label', {for: 'email'}, 'email'),
+      h('input', {id: 'email', name: 'email', type: 'email'}), h('br'),
+      h('input', {name: 'do_reset', type: 'submit', value: 'Reset password'})
+    )
+  ), h('div', {id: 'errormsg'})
   ].forEach(node => {
     $doc.content.appendChild(node);
   });
@@ -672,7 +671,7 @@ app.get('/reset-password', (req, res, next) => {
   res.send($doc.outerHTML);
 });
 
-app.get('/reset-password-ok', (req, res, next) => {
+app.get('/reset-password-ok', (req, res) => {
   $doc.title.textContent = 'Reset link sent to your inbox';
   [ h('p', 'We sent an email to your inbox with a link that will let you reset your password.'),
     h('p', 'Please make sure to check the spam folder if the email does not appear in your inbox in a few minutes.'),
@@ -684,7 +683,7 @@ app.get('/reset-password-ok', (req, res, next) => {
   res.send($doc.outerHTML);
 });
 
-app.get('/set-new-password', async (req, res, next) => {
+app.get('/set-new-password', async (req, res) => {
   if(!checkParams(req.query, 'username', 'auth')) return res.redirect('/');
 
   let {username, auth} = req.query;
@@ -707,7 +706,7 @@ app.get('/set-new-password', async (req, res, next) => {
   res.send($doc.outerHTML);
 });
 
-app.get('/auth/github', (req, res, next) => {
+app.get('/auth/github', (req, res) => {
   res.redirect(`https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}`);
 });
 
@@ -715,12 +714,12 @@ app.get('/auth/github/callback', async (req, res, next) => {
   if (!checkParams(req.query, 'code')) return next(Error('Error happens, please retry a later.'));
   let code = req.query.code;
   let headers = {
-    "Content-Type": "application/json",
-    "Accept": "application/json"
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
   };
 
 
-  let {access_token, token_type} = await fetch('https://github.com/login/oauth/access_token', {
+  let {access_token} = await fetch('https://github.com/login/oauth/access_token', {
     method: 'POST',
     headers: headers,
     body: JSON.stringify({
@@ -730,7 +729,7 @@ app.get('/auth/github/callback', async (req, res, next) => {
     })
   }).then(res => {
     if (res.ok) return res.json();
-    let error = new Error('HTTP Exception[POST]')
+    let error = new Error('HTTP Exception[POST]');
     error.status = res.status;
     error.statusText = res.statusText;
     error.url = res.url;
@@ -742,7 +741,7 @@ app.get('/auth/github/callback', async (req, res, next) => {
 
   let user = await fetch(`https://api.github.com/user?access_token=${access_token}`).then(res => {
     if (res.ok) return res.json();
-    let error = new Error('HTTP Exception[POST]')
+    let error = new Error('HTTP Exception[POST]');
     error.status = res.status;
     error.statusText = res.statusText;
     error.url = res.url;
@@ -752,7 +751,9 @@ app.get('/auth/github/callback', async (req, res, next) => {
     return next(err);
   });
 
+  /* eslint-disable no-unused-vars */
   let [auth, apisecret, errmsg] = await createGitHubUser(user);
+  /* eslint-enable no-unused-vars */
   if (auth)
     return res.cookie('auth', auth, {expires: new Date('Thu, 1 Aug 2030 20:00:00 UTC'), path: '/'}).redirect('/');
   next(Error(errmsg));
@@ -768,7 +769,7 @@ app.post('/api/login', async (req, res) => {
   res.json(auth ? {status: 'ok', auth: auth, apisecret: apisecret} : {status: 'err', error: 'No match for the specified username / password pair.'});
 });
 
-app.post('/api/logout', async (req, res, next) => {
+app.post('/api/logout', async (req, res) => {
   if ($user && checkApiSecret(req.body.apisecret)) {
     await updateAuthToken($user);
     return res.send({status: 'ok'});
@@ -810,7 +811,7 @@ app.post('/api/updateprofile', async (req, res) => {
   res.json({status: 'ok'});
 });
 
-app.get('/api/reset-password', async (req, res, next) => {
+app.get('/api/reset-password', async (req, res) => {
   if (!checkParams(req.query, 'username', 'email')) return res.json({status: 'err', error: 'Username and email are two required fields.'});
 
   let {username, email} = req.query;
@@ -827,12 +828,12 @@ app.get('/api/reset-password', async (req, res, next) => {
       // for rate limiting purposes, and send the email with the reset
       // link.
       await $r.hset(`user:${id}`, 'pwd_reset', numElapsed());
-      return res.json({status: "ok"});
+      return res.json({status: 'ok'});
     } else {
       return res.json({status: 'err', error: 'Problem sending the email, please contact the site admin.'});
     }
   }
-  res.json({status: 'err', error: 'No match for the specified username / email pair.'})
+  res.json({status: 'err', error: 'No match for the specified username / email pair.'});
 });
 
 app.post('/api/submit', async (req, res) => {
@@ -847,11 +848,11 @@ app.post('/api/submit', async (req, res) => {
   // Make sure the URL is about an acceptable protocol, that is
   // http:// or https:// for now.
   if (url.length != 0) {
-    if (url.indexOf("http://") != 0 &&
-      url.indexOf("https://") != 0)
+    if (url.indexOf('http://') != 0 &&
+      url.indexOf('https://') != 0)
       return res.json({
-        status: "err",
-        error: "We only accept http:// and https:// news."
+        status: 'err',
+        error: 'We only accept http:// and https:// news.'
       });
   }
 
@@ -873,7 +874,7 @@ app.post('/api/submit', async (req, res) => {
 
 });
 
-app.post('/api/delnews', async (req, res, next) => {
+app.post('/api/delnews', async (req, res) => {
   if (!$user) return res.json({status: 'err', error: 'Not authenticated.'});
   if (!req.body.apisecret) return res.json({status: 'err', error: 'Wrong form secret.'});
   if (!checkParams(req.body, 'news_id')) return res.json({status: 'err', error: 'Please specify a news title.'});
@@ -882,7 +883,7 @@ app.post('/api/delnews', async (req, res, next) => {
   res.json({status: 'err', error: 'News too old or wrong ID/owner.'});
 });
 
-app.post('/api/votenews', async (req, res, next) => {
+app.post('/api/votenews', async (req, res) => {
   if (!$user) return res.json({status: 'err', error: 'Not authenticated.'});
   if (!req.body.apisecret) return res.json({status: 'err', error: 'Wrong form secret.'});
   if (!checkParams(req.body, 'news_id', 'vote_type') ||
@@ -894,7 +895,7 @@ app.post('/api/votenews', async (req, res, next) => {
   res.json({status: 'err', error: error});
 });
 
-app.post('/api/postcomment', async (req, res, next) => {
+app.post('/api/postcomment', async (req, res) => {
   if (!$user) return res.json({status: 'err', error: 'Not authenticated.'});
   if (!req.body.apisecret) return res.json({status: 'err', error: 'Wrong form secret.'});
 
@@ -909,9 +910,9 @@ app.post('/api/postcomment', async (req, res, next) => {
   let {news_id, comment_id, parent_id, comment} = req.body;
   let info = await insertComment(+news_id, $user.id, +comment_id, +parent_id, comment);
   if (!info) return res.json({
-      status: 'err',
-      error: 'Invalid news, comment, or edit time expired.'
-    });
+    status: 'err',
+    error: 'Invalid news, comment, or edit time expired.'
+  });
 
   res.json({
     status: 'ok',
@@ -922,7 +923,7 @@ app.post('/api/postcomment', async (req, res, next) => {
   });
 });
 
-app.post('/api/votecomment', async (req, res, next) => {
+app.post('/api/votecomment', async (req, res) => {
   if (!$user) return res.json({status: 'err', error: 'Not authenticated.'});
   if (!req.body.apisecret) return res.json({status: 'err', error: 'Wrong form secret.'});
   if (!checkParams(req.body, 'comment_id', 'vote_type') ||
@@ -944,7 +945,7 @@ app.use(function(req, res, next) {
 });
 
 // error handler
-app.use(function(err, req, res, next) {
+app.use(function(err, req, res) {
   // only providing error in development
   const {stack, status, message} = err;
 
@@ -960,15 +961,10 @@ function checkApiSecret(apisecret) {
   return apisecret && apisecret == $user.apisecret;
 }
 
-// Has the user submitted a news story in the last `NewsSubmissionBreak` seconds?
-async function submittedRecently(){
-  return await allowedToPostInSeconds() > 0;
-}
-
 // Indicates when the user is allowed to submit another story after the last.
 async function allowedToPostInSeconds(){
   if (isAdmin($user)) return 0;
-  return await $r.ttl(`user:${$user.id}:submitted_recently`)
+  return await $r.ttl(`user:${$user.id}:submitted_recently`);
 }
 
 // Navigation, header and footer
@@ -993,11 +989,11 @@ function applicationHeader () {
   }), navbar_replies_link, navbar_admin_link);
 
   let rnavbar = h('nav', {id: 'account'}, $user ?
-      [h('a', {href: `/user/${encodeURIComponent($user.username)}`},
-        _.escape($user.username + ` (${$user.karma})`)
-      ), ' | ',
-      h('a', {href: `/logout?apisecret=${$user.apisecret}`}, 'logout')] :
-      h('a', {href: '/login'}, 'login / register')
+    [h('a', {href: `/user/${encodeURIComponent($user.username)}`},
+      _.escape($user.username + ` (${$user.karma})`)
+    ), ' | ',
+    h('a', {href: `/logout?apisecret=${$user.apisecret}`}, 'logout')] :
+    h('a', {href: '/login'}, 'login / register')
   );
 
   let mobile_menu = h('a', {href: '#', id: 'link-menu-mobile'}, '<~>');
@@ -1036,7 +1032,7 @@ function applicationFooter() {
           )
         )
       ) : ''
-    ]
+  ];
 }
 
 // Show list of items with show-more style pagination.
@@ -1069,8 +1065,8 @@ async function listItems(o){
 
   let last_displayed = parseInt(o.start + o.perpage);
   if (last_displayed < count) {
-      let nextpage = o.link.replace("$", last_displayed);
-      aux.push(h('a', {href: nextpage, class: "more"}, '[more]'));
+    let nextpage = o.link.replace('$', last_displayed);
+    aux.push(h('a', {href: nextpage, class: 'more'}, '[more]'));
   }
   return aux;
 }

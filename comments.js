@@ -123,8 +123,8 @@ function commentToHtml (c, u, show_parent = false) {
   let pre = h('pre');
   pre.innerHTML = urlsToLinks(_.escape(c.body.trim()));
   return h('article', {class: 'comment', style: indent, 'data-comment-id': comment_id, id: comment_id},
-    h('span', {class: "avatar"}, (() => {
-      let email = u.email || "";
+    h('span', {class: 'avatar'}, (() => {
+      let email = u.email || '';
       let digest = hexdigest(email);
       return h('img', {src: `//gravatar.com/avatar/${digest}?s=48&d=mm`});
     })()),
@@ -137,23 +137,23 @@ function commentToHtml (c, u, show_parent = false) {
       (show_parent && c.parent_id > -1 ? h('a', {href: `/comment/${news_id}/${c.parent_id}`, class: 'reply'}, 'parent ') : ''),
       ($user && !c.topcomment ? h('a', {href: `/reply/${news_id}/${c.id}`, class: 'reply'}, 'reply ') : ' '),
       (!c.topcomment ? (() => {
-          let upclass = 'uparrow';
-          let downclass = 'downarrow';
-          if ($user && c.up && c.up.includes(+$user.id)) {
-            upclass += ' voted';
-            downclass += ' disabled';
-          } else if ($user && c.down && c.down.includes(+$user.id)) {
-            downclass += ' voted';
-            upclass += ' disabled';
-          }
-          return [`${score} point` + `${Math.abs(+score) > 1 ? 's' : ''}` + ' ',
-            h('a', {href: '#up', class: upclass}, '▲ '),
-            h('a', {href: '#down', class: downclass}, '▼ ')];
-        })() : ' '),
-        (show_edit_link ?
-          [h('a', {href: `/editcomment/${news_id}/${c.id}`, class: 'reply'}, 'edit'),
+        let upclass = 'uparrow';
+        let downclass = 'downarrow';
+        if ($user && c.up && c.up.includes(+$user.id)) {
+          upclass += ' voted';
+          downclass += ' disabled';
+        } else if ($user && c.down && c.down.includes(+$user.id)) {
+          downclass += ' voted';
+          upclass += ' disabled';
+        }
+        return [`${score} point` + `${Math.abs(+score) > 1 ? 's' : ''}` + ' ',
+          h('a', {href: '#up', class: upclass}, '▲ '),
+          h('a', {href: '#down', class: downclass}, '▼ ')];
+      })() : ' '),
+      (show_edit_link ?
+        [h('a', {href: `/editcomment/${news_id}/${c.id}`, class: 'reply'}, 'edit'),
           ` (${
-              parseInt((commentEditTime - (numElapsed() - parseInt(c.ctime))) / 60)
+            parseInt((commentEditTime - (numElapsed() - parseInt(c.ctime))) / 60)
           } minutes left)`]
         : '')
     ), pre);
@@ -211,13 +211,13 @@ async function insertComment(news_id, user_id, comment_id, parent_id, body){
       user_id: user_id,
       ctime: numElapsed(),
       up: [+user_id]
-    }
+    };
     comment_id = await global.comment.insert(news_id, comment);
     if (!comment_id) return false;
     await $r.hincrby(`news:${news_id}`, 'comments', 1);
     await $r.zadd(`user.comments:${user_id}`,
       numElapsed(),
-      news_id + "-" + comment_id);
+      news_id + '-' + comment_id);
     // increment_user_karma_by(user_id,KarmaIncrementComment)
     if (p && await $r.exists(`user:${p.user_id}`))
       await $r.hincrby(`user:${p.user_id}`, 'replies', 1);
@@ -225,8 +225,8 @@ async function insertComment(news_id, user_id, comment_id, parent_id, body){
     return {
       news_id: news_id,
       comment_id: comment_id,
-      op: "insert"
-    }
+      op: 'insert'
+    };
   }
 
   // If we reached this point the next step is either to update or
@@ -243,7 +243,7 @@ async function insertComment(news_id, user_id, comment_id, parent_id, body){
     return {
       news_id: news_id,
       comment_id: comment_id,
-      op: "delete"
+      op: 'delete'
     };
   } else {
     let update = {body: body};
@@ -269,7 +269,7 @@ async function voteComment(news_id, comment_id, user_id, vote_type) {
 async function renderCommentsForNews(news_id, root = -1) {
   let auxs = [];
   let user = {};
-  await comment.renderComments(news_id, root, async (c) => {
+  await global.comment.renderComments(news_id, root, async (c) => {
     if (!user[c.id]) user[c.id] = await getUserById(c.user_id);
     if (!user[c.id]) user[c.id] = deletedUser;
     let u = user[c.id];
@@ -281,17 +281,18 @@ async function renderCommentsForNews(news_id, root = -1) {
 async function renderCommentSubthread(comment, sep=''){
   let u = await getUserById(comment.user_id) || deletedUser;
   let comments = await renderCommentsForNews(comment.thread_id, + comment.id);
-  return [h('div', {class: "singlecomment"}, commentToHtml(comment, u, true)), (comments ?
-    h('div', {class: "commentreplies"}, [sep, comments]) : '')];
+  return [h('div', {class: 'singlecomment'}, commentToHtml(comment, u, true)), (comments ?
+    h('div', {class: 'commentreplies'}, [sep, comments]) : '')];
 }
 
 // Given a string returns the same string with all the urls converted into
 // HTML links. We try to handle the case of an url that is followed by a period
 // Like in "I suggest http://google.com." excluding the final dot from the link.
 function urlsToLinks(s) {
-  let urls = /((https?:\/\/|www\.)([-\w\.]+)+(:\d+)?(\/([\w\/_#:\.\-\%]*(\?\S+)?)?)?)/;
+  let urls = /((https?:\/\/|www\.)([-\w.]+)+(:\d+)?(\/([\w/_#:.\-%]*(\?\S+)?)?)?)/;
   return s.replace(urls, (match, $1, $2) => {
-    let url = text = $1;
+    let url, text;
+    url = text = $1;
     if ($2 == 'www.') url = `http://${url}`;
     if ($1.substr(-1, 1) == '.') {
       url = url.slice(0, url.length-1);
@@ -313,4 +314,4 @@ module.exports = {
   renderCommentsForNews,
   renderCommentSubthread,
   urlsToLinks
-}
+};

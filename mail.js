@@ -3,22 +3,22 @@ const smtp = require('smtp-protocol');
 // Check if an email is valid, in a not very future-proof way.
 function isValidEmail(mail){
   // Characters allowed on name: 0-9a-Z-._ on host: 0-9a-Z-. on between: @
-  if (!/^[0-9a-zA-Z\.\-\_\+]+\@[0-9a-zA-Z\.\-]+$/.test(mail)) return false;
+  if (!/^[0-9a-zA-Z.\-_+]+@[0-9a-zA-Z.-]+$/.test(mail)) return false;
 
   // Must start or end with alpha or num
   if (/^[^0-9a-zA-Z]|[^0-9a-zA-Z]$/.test(mail)) return false;
 
   // Name must end with alpha or num
-  if (!/([0-9a-zA-Z]{1})\@./.test(mail)) return false;
+  if (!/([0-9a-zA-Z]{1})@./.test(mail)) return false;
 
   // Host must start with alpha or num
-  if (!/.\@([0-9a-zA-Z]{1})/.test(mail)) return false;
+  if (!/.@([0-9a-zA-Z]{1})/.test(mail)) return false;
 
   // Host must end with '.' plus 2 or 3 or 4 alpha for TopLevelDomain
   // (MUST be modified in future!)
   if (!/\.([a-zA-Z]{2,4})$/.test(mail)) return false;
 
-  return true
+  return true;
 }
 
 // Send an email using the specified SMTP relay host.
@@ -34,22 +34,24 @@ function isValidEmail(mail){
 // appear to be invald. If at least one error occurs sending the email, then
 // false is returned and the operation aborted, otherwise true is returned.
 async function sendMail(relay, from, to, subject, body, opt={}){
-  let header = ''
+  /* eslint-disable no-unused-vars */
+  let header = '';
   if (opt.html) {
-    header += "MIME-Version: 1.0\r\n";
-    header += "Content-type: text/html;";
-    header += "charset=utf-8\r\n";
+    header += 'MIME-Version: 1.0\r\n';
+    header += 'Content-type: text/html;';
+    header += 'charset=utf-8\r\n';
   }
 
   if (Array.isArray(from)) {
-    header += "From: "+ from[0] + " <" + from[1] + ">";
+    header += 'From: '+ from[0] + ' <' + from[1] + '>';
     from = from[1];
   } else {
-    header += "From: " + from;
+    header += 'From: ' + from;
   }
+  /* eslint-enable no-unused-vars */
 
   let status = true;
-  let mails = []
+  let mails = [];
   for (let m of to.split(',')) {
     if (m && isValidEmail(m)){
       let p = new Promise((resolve, reject) => {
@@ -58,7 +60,7 @@ async function sendMail(relay, from, to, subject, body, opt={}){
           mail.from(from);
           mail.to(m);
           mail.data();
-          let message = mail.message((err, code, lines) => {
+          let message = mail.message((err, code) => {
             if (err) return reject(err);
             resolve(code);
           });
@@ -80,4 +82,4 @@ async function sendMail(relay, from, to, subject, body, opt={}){
 module.exports = {
   isValidEmail,
   sendMail
-}
+};
