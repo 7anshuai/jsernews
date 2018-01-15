@@ -5,7 +5,6 @@
 'use strict';
 
 const path = require('path');
-const url = require('url');
 
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -14,7 +13,6 @@ const favicon = require('serve-favicon');
 const logger = require('morgan');
 const HTMLGen = require('html5-gen');
 const _ = require('underscore');
-const debug = require('debug')('jsernews:app');
 const reds = require('reds');
 
 const {Comment, commentToHtml, computeCommentScore, getUserComments, insertComment, voteComment, renderCommentsForNews, renderCommentSubthread} = require('./comments');
@@ -56,7 +54,7 @@ app.use(async (req, res, next) => {
         ? $h.script('setKeyboardNavigation();') : '');
   }, 'body');
 
-  if (!global.comment) global.comment = new Comment($r, 'comment', (c, level) => {
+  if (!global.comment) global.comment = new Comment($r, 'comment', (c) => {
     return c.sort((a, b) => {
       let ascore = computeCommentScore(a);
       let bscore = computeCommentScore(b);
@@ -76,7 +74,7 @@ app.use(async (req, res, next) => {
 });
 
 app.get('/', async (req, res) => {
-  let [news, numitems] = await getTopNews();
+  let [news] = await getTopNews();
   $h.setTitle(`${siteName} - ${siteDescription}`);
   res.send($h.page($h.h2('Top News') + newsListToHTML(news, req.query)));
 });
@@ -100,7 +98,7 @@ app.get('/latest/:start', async (req, res, next) => {
     start: start,
     perpage: latestNewsPerPage,
     link: '/latest/$'
-  }
+  };
   let newslist = await listItems(paginate);
 
   $h.setTitle(`Latest News - ${siteName}`);
@@ -117,9 +115,9 @@ app.get('/random', async (req, res) => {
   res.redirect(await $r.exists(`news:${random}`) ? `/news/${random}` : `/news/${counter}`);
 });
 
-app.get('/replies', async (req, res, next) => {
+app.get('/replies', async (req, res) => {
   if (!$user) return res.redirect('/login');
-  let [comments, count] = await getUserComments($user.id, 0, subthreadsInRepliesPage);
+  let [comments] = await getUserComments($user.id, 0, subthreadsInRepliesPage);
   $h.setTitle(`Your threads - ${siteName}`);
   let html = $h.page(
     $h.h2('Your threads') +
@@ -135,8 +133,8 @@ app.get('/replies', async (req, res, next) => {
   res.send(html);
 });
 
-app.get('/rss', async (req, res, next) => {
-  let [news, numitems] = await getLatestNews();
+app.get('/rss', async (req, res) => {
+  let [news] = await getLatestNews();
   let rss = $h.rss({version: '2.0', 'xmlns:atom': 'http://www.w3.org/2005/Atom'},
     $h.channel(
       $h.title(siteName) + ' ' +
@@ -148,7 +146,7 @@ app.get('/rss', async (req, res, next) => {
   res.type('xml').send(rss);
 });
 
-app.get('/search', (req, res) => {
+app.get('/search', (req, res, next) => {
   let {q, t} = req.query;
   t = t || 'news';
 
@@ -164,7 +162,7 @@ app.get('/search', (req, res) => {
       $h.div({id: 'searchform'}, $h.form({name: 'f', action: '/search'}, () => {
         return $h.hidden({name: 't', value: 'news'}) +
           $h.text({name: 'q', required: true, placeholder: placeholder}) + ' ' +
-          $h.submit({value: 'Search'}) + searchtips
+          $h.submit({value: 'Search'}) + searchtips;
       }))
     );
     return res.send(html);
@@ -182,7 +180,7 @@ app.get('/search', (req, res) => {
               $h.div({id: 'errormsg'}, () => {
                 return $h.span('“Nothing for you, Dawg.”') +
                   $h.div('0 results');
-              })
+              });
           }))
         );
         return res.send(html);
@@ -217,16 +215,16 @@ app.get('/news/:news_id', async (req, res, next) => {
   let user, top_comment;
   if (!getNewsDomain(news) && !news.del) {
     let c = {
-        body: getNewsText(news),
-        ctime: news.ctime,
-        user_id: news.user_id,
-        thread_id: news.id,
-        topcomment: true
-    }
+      body: getNewsText(news),
+      ctime: news.ctime,
+      user_id: news.user_id,
+      thread_id: news.id,
+      topcomment: true
+    };
     user = await getUserById(news.user_id) || deletedUser;
     top_comment = $h.div({class: 'topcomment'}, (commentToHtml(c, user)));
   } else {
-    top_comment = "";
+    top_comment = '';
   }
 
   $h.setTitle(`${news.title} - ${siteName}`);
@@ -243,13 +241,13 @@ app.get('/news/:news_id', async (req, res, next) => {
           $h.textarea({name: 'comment', cols: 60, rows: 10}) + $h.br() +
           $h.button({name: 'post_comment', value: 'Send comment'});
       }) + $h.div({id: 'errormsg'}) :
-    $h.br()) + await renderCommentsForNews(news.id)
+      $h.br()) + await renderCommentsForNews(news.id)
   );
 
   res.send(html);
 });
 
-app.get('/editnews/:news_id', async (req, res, next) => {
+app.get('/editnews/:news_id', async (req, res) => {
   if (!$user) return res.redirect('/login');
   let news_id = req.params.news_id;
   let news = await getNewsById(news_id);
@@ -283,7 +281,7 @@ app.get('/editnews/:news_id', async (req, res, next) => {
   res.send($h.page(newsToHTML(news) + form + $h.div({id: 'errormsg'})));
 });
 
-app.get('/user/:username', async (req, res, next) => {
+app.get('/user/:username', async (req, res) => {
   let username = req.params.username;
   let user = await getUserByUsername(username);
   if (!user) return res.status(404).send('Non existing user');
@@ -341,7 +339,7 @@ app.get('/usernews/:username/:start', async (req, res, next) => {
     start: start,
     perpage: savedNewsPerPage,
     link: `/usernews/${$h.entities(user.username)}/$`
-  }
+  };
   let newslist = await listItems(paginate);
   res.send($h.page(() => {
     return $h.h2(`News posted by ${user.username}`) +
@@ -365,7 +363,7 @@ app.get('/saved/:start', async (req, res, next) => {
     start: start,
     perpage: savedNewsPerPage,
     link: '/saved/$'
-  }
+  };
   let newslist = await listItems(paginate);
   res.send($h.page(() => {
     return $h.h2('You saved News') +
@@ -391,14 +389,14 @@ app.get('/usercomments/:username/:start', async (req, res, next) => {
     start: start,
     perpage: userCommentsPerPage,
     link: `/usercomments/${$h.entities(user.username)}/$`
-  }
+  };
   res.send($h.page(
     $h.h2(`${$h.entities(user.username)} comments`) +
     $h.div({id: 'comments'}, await listItems(paginate))
   ));
 });
 
-app.get('/comment/:news_id/:comment_id', async (req, res, next) => {
+app.get('/comment/:news_id/:comment_id', async (req, res) => {
   let {news_id, comment_id} = req.params;
   let news = await getNewsById(news_id);
   if (!news) return res.status(404).send('404 - This news does not exist.');
@@ -406,12 +404,12 @@ app.get('/comment/:news_id/:comment_id', async (req, res, next) => {
   if (!comment) return res.status(404).send('404 - This comment does not exist.');
   $h.setTitle(`${news.title} - ${siteName}`);
   res.send($h.page(
-      $h.section({id: 'newslist'}, newsToHTML(news)) +
+    $h.section({id: 'newslist'}, newsToHTML(news)) +
       await renderCommentSubthread(comment, $h.h4('Replies'))
   ));
 });
 
-app.get("/reply/:news_id/:comment_id", async (req, res, next) => {
+app.get('/reply/:news_id/:comment_id', async (req, res) => {
   if (!$user) return res.redirect('/login');
   let {news_id, comment_id} = req.params;
   let news = await getNewsById(news_id);
@@ -435,7 +433,7 @@ app.get("/reply/:news_id/:comment_id", async (req, res, next) => {
   ));
 });
 
-app.get('/editcomment/:news_id/:comment_id', async (req, res, next) => {
+app.get('/editcomment/:news_id/:comment_id', async (req, res) => {
   if (!$user) return res.redirect('/login');
 
   let {news_id, comment_id} = req.params;
@@ -464,7 +462,7 @@ app.get('/editcomment/:news_id/:comment_id', async (req, res, next) => {
   ));
 });
 
-app.get('/about', (req, res, next) => {
+app.get('/about', (req, res) => {
   $h.setTitle(`About - ${siteName}`);
   res.send($h.page(
     $h.div({id: 'about'},
@@ -487,7 +485,7 @@ app.get('/about', (req, res, next) => {
   ));
 });
 
-app.get('/admin', async (req, res, next) => {
+app.get('/admin', async (req, res) => {
   if(!$user || !isAdmin($user)) return res.redirect('/');
   let user_count = await $r.get('users.count');
   let news_count = await $r.zcard('news.cron');
@@ -517,10 +515,10 @@ app.get('/recompute', async (req, res) => {
   let range = await $r.zrange('news.cron', 0, -1);
   for (let news_id of range) {
     let news = await getNewsById(news_id);
-    let score = await computeNewsScore(news)
-    let rank = computeNewsRank(news)
-    await $r.hmset(`news:${news_id}`, 'score', score, 'rank', rank)
-    await $r.zadd('news.top', rank, news_id)
+    let score = await computeNewsScore(news);
+    let rank = computeNewsRank(news);
+    await $r.hmset(`news:${news_id}`, 'score', score, 'rank', rank);
+    await $r.zadd('news.top', rank, news_id);
   }
   res.send($h.page($h.p('Done.')));
 });
@@ -569,7 +567,7 @@ app.get('/login', (req, res) => {
         $h.checkbox({id: 'register', name: 'register', value: 1}) + $h.label({
           for: 'register',
           style: 'display: inline;'
-          }, 'create account') + $h.br() +
+        }, 'create account') + $h.br() +
         $h.submit({name: 'do_login'}, 'Login')
       );
     }) + $h.div({id: 'errormsg'}) + $h.a({href: '/reset-password'}, 'reset password')
@@ -586,7 +584,7 @@ app.get('/logout', async (req, res) => {
   res.redirect('/');
 });
 
-app.get('/reset-password', (req, res, next) => {
+app.get('/reset-password', (req, res) => {
   $h.setTitle(`Reset Password - ${siteName}`);
   $h.append($h.script('$(function() {$("form[name=f]").submit(reset_password);});'), 'body');
   let html = $h.page(
@@ -601,12 +599,12 @@ app.get('/reset-password', (req, res, next) => {
         $h.submit({name: 'do_reset', value: 'Reset password'})
       )
     ) + $h.div({id: 'errormsg'})
-  )
+  );
 
   res.send(html);
 });
 
-app.get('/reset-password-ok', (req, res, next) => {
+app.get('/reset-password-ok', (req, res) => {
   $h.setTitle('Reset link sent to your inbox');
   res.send($h.page(
     $h.p('We sent an email to your inbox with a link that will let you reset your password.') +
@@ -615,7 +613,7 @@ app.get('/reset-password-ok', (req, res, next) => {
   ));
 });
 
-app.get('/set-new-password', async (req, res, next) => {
+app.get('/set-new-password', async (req, res) => {
   if(!checkParams(req.query, 'username', 'auth')) return res.redirect('/');
 
   let {username, auth} = req.query;
@@ -631,8 +629,8 @@ app.get('/set-new-password', async (req, res, next) => {
       '; expires=Thu, 1 Aug 2030 20:00:00 UTC; path=/';
       window.location.href = '/user/${user.username}';
       });`
-    ), 'body');
-   res.send($h.page());
+  ), 'body');
+  res.send($h.page());
 
 });
 
@@ -646,9 +644,9 @@ app.post('/api/login', async (req, res) => {
   res.json(auth ? {status: 'ok', auth: auth, apisecret: apisecret} : {status: 'err', error: 'No match for the specified username / password pair.'});
 });
 
-app.post('/api/logout', async (req, res, next) => {
+app.post('/api/logout', async (req, res) => {
   if ($user && checkApiSecret(req.body.apisecret)) {
-    await updateAuthToken($user)
+    await updateAuthToken($user);
     return res.send({status: 'ok'});
   }
   return res.send({
@@ -688,7 +686,7 @@ app.post('/api/updateprofile', async (req, res) => {
   res.json({status: 'ok'});
 });
 
-app.get('/api/reset-password', async (req, res, next) => {
+app.get('/api/reset-password', async (req, res) => {
   if (!checkParams(req.query, 'username', 'email')) return res.json({status: 'err', error: 'Username and email are two required fields.'});
 
   let {username, email} = req.query;
@@ -705,12 +703,12 @@ app.get('/api/reset-password', async (req, res, next) => {
       // for rate limiting purposes, and send the email with the reset
       // link.
       await $r.hset(`user:${id}`, 'pwd_reset', numElapsed());
-      return res.json({status: "ok"});
+      return res.json({status: 'ok'});
     } else {
       return res.json({status: 'err', error: 'Problem sending the email, please contact the site admin.'});
     }
   }
-  res.json({status: 'err', error: 'No match for the specified username / email pair.'})
+  res.json({status: 'err', error: 'No match for the specified username / email pair.'});
 });
 
 app.post('/api/submit', async (req, res) => {
@@ -725,11 +723,11 @@ app.post('/api/submit', async (req, res) => {
   // Make sure the URL is about an acceptable protocol, that is
   // http:// or https:// for now.
   if (url.length != 0) {
-    if (url.indexOf("http://") != 0 &&
-      url.indexOf("https://") != 0)
+    if (url.indexOf('http://') != 0 &&
+      url.indexOf('https://') != 0)
       return res.json({
-        status: "err",
-        error: "We only accept http:// and https:// news."
+        status: 'err',
+        error: 'We only accept http:// and https:// news.'
       });
   }
 
@@ -751,7 +749,7 @@ app.post('/api/submit', async (req, res) => {
 
 });
 
-app.post('/api/delnews', async (req, res, next) => {
+app.post('/api/delnews', async (req, res) => {
   if (!$user) return res.json({status: 'err', error: 'Not authenticated.'});
   if (!req.body.apisecret) return res.json({status: 'err', error: 'Wrong form secret.'});
   if (!checkParams(req.body, 'news_id')) return res.json({status: 'err', error: 'Please specify a news title.'});
@@ -760,7 +758,7 @@ app.post('/api/delnews', async (req, res, next) => {
   res.json({status: 'err', error: 'News too old or wrong ID/owner.'});
 });
 
-app.post('/api/votenews', async (req, res, next) => {
+app.post('/api/votenews', async (req, res) => {
   if (!$user) return res.json({status: 'err', error: 'Not authenticated.'});
   if (!req.body.apisecret) return res.json({status: 'err', error: 'Wrong form secret.'});
   if (!checkParams(req.body, 'news_id', 'vote_type') ||
@@ -772,7 +770,7 @@ app.post('/api/votenews', async (req, res, next) => {
   res.json({status: 'err', error: error});
 });
 
-app.post('/api/postcomment', async (req, res, next) => {
+app.post('/api/postcomment', async (req, res) => {
   if (!$user) return res.json({status: 'err', error: 'Not authenticated.'});
   if (!req.body.apisecret) return res.json({status: 'err', error: 'Wrong form secret.'});
 
@@ -787,9 +785,9 @@ app.post('/api/postcomment', async (req, res, next) => {
   let {news_id, comment_id, parent_id, comment} = req.body;
   let info = await insertComment(+news_id, $user.id, +comment_id, +parent_id, comment);
   if (!info) return res.json({
-      status: 'err',
-      error: 'Invalid news, comment, or edit time expired.'
-    });
+    status: 'err',
+    error: 'Invalid news, comment, or edit time expired.'
+  });
 
   res.json({
     status: 'ok',
@@ -800,7 +798,7 @@ app.post('/api/postcomment', async (req, res, next) => {
   });
 });
 
-app.post('/api/votecomment', async (req, res, next) => {
+app.post('/api/votecomment', async (req, res) => {
   if (!$user) return res.json({status: 'err', error: 'Not authenticated.'});
   if (!req.body.apisecret) return res.json({status: 'err', error: 'Wrong form secret.'});
   if (!checkParams(req.body, 'comment_id', 'vote_type') ||
@@ -826,7 +824,7 @@ app.use(function(req, res, next) {
 // development error handler
 // will print stacktrace
 if (app.get('env') === 'development') {
-  app.use(function(err, req, res, next) {
+  app.use(function(err, req, res) {
     res.status(err.status || 500);
     res.send({
       message: err.message,
@@ -837,7 +835,7 @@ if (app.get('env') === 'development') {
 
 // production error handler
 // no stacktraces leaked to user
-app.use(function(err, req, res, next) {
+app.use(function(err, req, res) {
   res.status(err.status || 500);
   res.send({
     message: err.message,
@@ -850,15 +848,10 @@ function checkApiSecret(apisecret) {
   return apisecret && apisecret == $user.apisecret;
 }
 
-// Has the user submitted a news story in the last `NewsSubmissionBreak` seconds?
-async function submittedRecently(){
-  return await allowedToPostInSeconds() > 0;
-}
-
 // Indicates when the user is allowed to submit another story after the last.
 async function allowedToPostInSeconds(){
   if (isAdmin($user)) return 0;
-  return await $r.ttl(`user:${$user.id}:submitted_recently`)
+  return await $r.ttl(`user:${$user.id}:submitted_recently`);
 }
 
 // Navigation, header and footer
@@ -948,7 +941,7 @@ function applicationFooter() {
 //
 // Return value: the current page rendering.
 async function listItems(o){
-  let aux = "";
+  let aux = '';
   if (o.start < 0) o.start = 0;
   let [items, count] = await o.get.call(o, o.start, o.perpage);
 
@@ -958,8 +951,8 @@ async function listItems(o){
 
   let last_displayed = parseInt(o.start + o.perpage);
   if (last_displayed < count) {
-      let nextpage = o.link.replace("$", last_displayed);
-      aux += $h.a({href: nextpage, class: "more"}, '[more]');
+    let nextpage = o.link.replace('$', last_displayed);
+    aux += $h.a({href: nextpage, class: 'more'}, '[more]');
   }
   return aux;
 }

@@ -1,11 +1,11 @@
 module.exports = {
   // General
-  siteName: "JSer News",
-  siteUrl: "https://jsernews.com",
-  siteDescription: "",
+  siteName: 'JSer News',
+  siteUrl: 'https://jsernews.com',
+  siteDescription: '',
 
   // Redis config
-  redisURL: "redis://127.0.0.1:6379",
+  redisURL: 'redis://127.0.0.1:6379',
 
   // Security
   PBKDF2Iterations: 1000, // Set this to 5000 to improve security. But it is slow.
@@ -34,10 +34,10 @@ module.exports = {
   keyboardNavigation: 1,
 
   // User
-  deletedUser: {"username": "deleted_user", "email": "", "id": -1},
+  deletedUser: {'username': 'deleted_user', 'email': '', 'id': -1},
   userCreationDelay: 3600*24,
   passwordResetDelay: 3600*24,
-  usernameRegexp: /^[a-zA-Z][a-zA-Z0-9_\-]+$/,
+  usernameRegexp: /^[a-zA-Z][a-zA-Z0-9_-]+$/,
 
   // News and ranking
   newsAgePadding: 3600*8,
@@ -61,6 +61,6 @@ module.exports = {
 
   // Email service. Set MailRelay to false to disable this functionality
   // (this will prevent users from recovery accounts if the password gets lost).
-  mailRelay: "localhost",
-  mailFrom: "noreply@jsernews.com"
-}
+  mailRelay: 'localhost',
+  mailFrom: 'noreply@jsernews.com'
+};

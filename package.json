@@ -6,6 +6,7 @@
     "cover": "cross-env NODE_ENV=test nyc mocha",
     "debug": "cross-env DEBUG=jsernews:* node bin/www",
     "start": "node bin/www",
+    "lint": "eslint *.js",
     "test": "cross-env NODE_ENV=test mocha"
   },
   "repository": {
@@ -40,6 +41,7 @@
   },
   "devDependencies": {
     "cross-env": "^5.1.1",
+    "eslint": "^4.15.0",
     "mocha": "^3.2.0",
     "nyc": "^11.3.0",
     "should": "^11.2.1",
