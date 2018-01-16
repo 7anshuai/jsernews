@@ -4,7 +4,7 @@
   "description": "The LN(lamer news) style social news site written in Node",
   "scripts": {
     "cover": "cross-env NODE_ENV=test nyc mocha",
-    "debug": "cross-env DEBUG=jsernews:* node bin/www",
+    "dev": "cross-env DEBUG=jsernews:* nodemon bin/www",
     "start": "node bin/www",
     "lint": "eslint *.js",
     "pretest": "npm run lint",
@@ -44,6 +44,7 @@
     "cross-env": "^5.1.1",
     "eslint": "^4.15.0",
     "mocha": "^3.2.0",
+    "nodemon": "^1.14.11",
     "nyc": "^11.3.0",
     "should": "^11.2.1",
     "supertest": "^3.0.0"
