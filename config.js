@@ -53,7 +53,7 @@ module.exports = {
   topNewsAgeLimit: 3600*24*30,
 
   // Footer links
-  footerTwitterLink: false,
+  footerTwitterLink: 'https://twitter.com/jsernews',
   footerGoogleGroupLink: false,
 
   // API
