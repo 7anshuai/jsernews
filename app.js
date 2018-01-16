@@ -18,7 +18,7 @@ const h = require('hyperscript');
 const reds = require('reds');
 
 const {Comment, commentToHtml, computeCommentScore, getUserComments, insertComment, voteComment, renderCommentsForNews, renderCommentSubthread} = require('./comments');
-const {deletedUser, keyboardNavigation, latestNewsPerPage, passwordMinLength, passwordResetDelay, savedNewsPerPage, siteName, siteDescription, siteUrl, subthreadsInRepliesPage, userCommentsPerPage, usernameRegexp} = require('./config');
+const {deletedUser, footerTwitterLink, keyboardNavigation, latestNewsPerPage, passwordMinLength, passwordResetDelay, savedNewsPerPage, siteName, siteDescription, siteUrl, subthreadsInRepliesPage, userCommentsPerPage, usernameRegexp} = require('./config');
 const {authUser, checkUserCredentials, createUser, createGitHubUser, getUserById, getUserByUsername, hashPassword, incrementKarmaIfNeeded, isAdmin, sendResetPasswordEmail, updateAuthToken} = require('./user');
 const {computeNewsRank, computeNewsScore, getLatestNews, getTopNews, getNewsById, getNewsDomain, getNewsText, getPostedNews, getSavedNews, delNews, editNews, insertNews, voteNews, newsToHTML, newsListToHTML, newsListToRSS} = require('./news');
 const {checkParams, hexdigest, numElapsed, strElapsed} = require('./utils');
@@ -1010,7 +1010,7 @@ function applicationFooter() {
     ['about', '/about'],
     ['source code', 'https://github.com/7anshuai/jsernews'],
     ['rss feed', '/rss'],
-    // ['twitter', footerTwitterLink]
+    ['twitter', footerTwitterLink]
   ];
 
   return [
