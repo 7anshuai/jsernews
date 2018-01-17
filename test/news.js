@@ -1,7 +1,8 @@
+/* eslint-disable no-unused-vars */
 const should = require('should');
 const redis = require('../redis');
 const {getNewsById, getNewsText,  delNews, editNews, insertNews, voteNews} = require('../news');
-const {createUser, incrementUserKarmaBy} = require('../user');
+const {createUser} = require('../user');
 
 describe('News', () => {
   before(async () => {
@@ -67,7 +68,7 @@ describe('News', () => {
   it('should get a duplicated vote error', async () => {
     let [rank, error] = await voteNews(1, 1, 'up');
     error.should.ok();
-    error.should.equal('Duplicated vote.')
+    error.should.equal('Duplicated vote.');
   });
 
 });

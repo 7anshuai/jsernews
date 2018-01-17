@@ -6,7 +6,7 @@
     "cover": "cross-env NODE_ENV=test nyc mocha",
     "dev": "cross-env DEBUG=jsernews:* nodemon bin/www",
     "start": "node bin/www",
-    "lint": "eslint *.js",
+    "lint": "eslint *.js test/*.js --env mocha",
     "pretest": "npm run lint",
     "test": "cross-env NODE_ENV=test mocha"
   },
