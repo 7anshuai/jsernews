@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 const should = require('should');
 const supertest = require('supertest');
 const app = require('../app');
@@ -92,10 +93,10 @@ describe('APP Routes', function () {
         if (err) return done(err);
         res.body.status.should.equal('err');
         done();
-      })
+      });
   });
 
-it('should login successfully', done => {
+  it('should login successfully', done => {
     agent.post('/api/login')
       .send({
         username: 'ts',

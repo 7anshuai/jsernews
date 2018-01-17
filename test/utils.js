@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 const should = require('should');
 const {checkParams, getRand, numElapsed, strElapsed} = require('../utils');
 
