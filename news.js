@@ -183,8 +183,10 @@ async function editNews(news_id, title, url, text, user_id){
   });
   // Reset the reds index
   let search = reds.createSearch('news');
-  search.remove(news_id);
-  search.index(title, news_id);
+  search.remove(news_id, err => {
+    if (err) debug(err);
+    search.index(title, news_id);
+  });
 
   return news_id;
 }
