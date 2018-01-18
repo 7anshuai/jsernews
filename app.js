@@ -178,8 +178,8 @@ app.get('/search', (req, res, next) => {
               $h.text({name: 'q', required: true, placeholder: placeholder, value: q}) + ' ' +
               $h.submit({value: 'Search'}) + searchtips +
               $h.div({id: 'errormsg'}, () => {
-                return $h.span('“Nothing for you, Dawg.”') +
-                  $h.div('0 results');
+                return $h.span('"Nothing for you, JSer."') +
+                  $h.div('0 result');
               });
           }))
         );
@@ -192,7 +192,7 @@ app.get('/search', (req, res, next) => {
             return $h.hidden({name: 't', value: 'news'}) +
               $h.text({name: 'q', required: true, placeholder: placeholder, value: q}) + ' ' +
               $h.submit({value: 'Search'}) +
-              $h.div({id: 'successmsg'}, `Found ${ids.length} results for "${q}":`) + $h.br();
+              $h.div({id: 'successmsg'}, `Found ${ids.length} result${ids.length > 1 ? 's' : ''} for "${q}":`) + $h.br();
           }))  + newsListToHTML(news, req.query)
         );
         return res.send(html);
