@@ -191,7 +191,7 @@ app.get('/search', (req, res, next) => {
           ' ',
           h('input', {type: 'submit', value: 'Search'}),
           searchtips,
-          h('#errormsg', h('span', '"Nothing for you, Dawg."'), h('br'), h('span', '0 results'))
+          h('#errormsg', h('span', '"Nothing for you, JSer."'), h('br'), h('span', '0 result'))
         )));
 
         return res.send($doc.outerHTML);
@@ -204,7 +204,7 @@ app.get('/search', (req, res, next) => {
           ' ',
           h('input', {type: 'submit', value: 'Search'}),
           searchtips,
-          h('#successmsg', `Found ${ids.length} results for "${q}":`),
+          h('#successmsg', `Found ${ids.length} result${ids.length > 1 ? 's': ''} for "${q}":`),
           h('br')
         )));
         $doc.content.appendChild(newsListToHTML(news, req.query));
