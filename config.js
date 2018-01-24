@@ -1,6 +1,6 @@
 module.exports = {
   // General
-  siteName: 'JSer News',
+  siteName: 'jsernews',
   siteUrl: 'https://jsernews.com',
   siteDescription: 'JavaScript 开发者新闻',
 

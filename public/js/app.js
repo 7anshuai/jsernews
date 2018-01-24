@@ -162,8 +162,8 @@ function setKeyboardNavigation() {
                     $('html, body').animate({ scrollTop: newActive.offset().top - $(window).height() + newActive.height() + 10 }, 100);
             }
             if (e.which == 13 && active.length > 0) {
-                if (active.find('h2 a').length == 0) return;
-                location.href = active.find('h2 a').attr('href');
+                if (active.find('h3 a').length == 0) return;
+                location.href = active.find('h3 a').attr('href');
             }
             if (e.which == 65 && active.length > 0) {
                 active.find('.uparrow').click();

@@ -335,8 +335,8 @@ function newsToHTML (news, opt) {
     upclass += ' disabled';
   }
   return h('article', {'data-news-id': news.id},
-    h('a', {href: '#up', class: upclass}, '▲'), ' ',
-    h('h3', h('a', {href: news.url, rel: 'nofollow'}, _.escape(news.title))), ' ',
+    h('a', {href: '#up', class: upclass}, '▲'),
+    h('h3', h('a', {href: news.url, rel: 'nofollow'}, _.escape(news.title))),
     h('address', (domain ? `at ${_.escape(domain)}` : ''), (($user && $user.id == news.user_id && news.ctime > (numElapsed() - newsEditTime)) ? [' ', h('a', {href: `/editnews/${news.id}`}, '[edit]')] : '')),
     h('a', {href: '#down', class: downclass}, '▼'),
     h('p', h('span', {class: 'upvotes'}, `${news.up}`), ' up and ',

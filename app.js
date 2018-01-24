@@ -48,20 +48,24 @@ app.use(async (req, res, next) => {
     h('meta', {content: 'index', name: 'robots'}),
     h('title', `${siteName} - ${siteDescription}`),
     h('link', {href: '/favicon.ico', rel: 'shortcut icon'}),
+    h('link', {rel: 'stylesheet', href: '/css/lit.css'}),
     h('link', {href: `/css/style.css?v=${version}`, rel: 'stylesheet'}));
   let content = h('section#content');
   global.$doc = h('html',
     head,
     h('body',
-      h('.container',
+      h('.c',
         applicationHeader(),
+        h('hr'),
         content,
+        h('hr'),
         applicationFooter()),
       h('script', {src: '//code.jquery.com/jquery-3.1.1.min.js'}),
       h('script', {src: `/js/app.js?v=${version}`}),
       $user ? h('script', `var apisecret = '${$user.apisecret}';`) : '',
       keyboardNavigation == 1 ? h('script', 'setKeyboardNavigation();') : '')
   );
+  $doc.head = head;
   $doc.title = head.childNodes[3];
   $doc.body = $doc.childNodes[1];
   $doc.content = content;
@@ -169,12 +173,11 @@ app.get('/search', (req, res, next) => {
 
   $doc.title.textContent = `Search News - ${siteName}`;
   if (!q) {
-    $doc.content.appendChild(h('h2', 'Search News'));
+    $doc.content.appendChild(h('h2', 'Search News 🔍'));
     $doc.content.appendChild(h('#searchform', h('form', {name: 'f', action: '/search'},
       h('input', {type: 'hidden', name: 't', value: 'news'}),
-      h('input', {type: 'text', name: 'q', placeholder: placeholder, required: true}),
-      ' ',
-      h('input', {type: 'submit', value: 'Search'}),
+      h('input.card.w-100', {type: 'text', name: 'q', placeholder: placeholder, required: true}),
+      h('input.btn.btn-small.primary', {type: 'submit', value: 'Search'}),
       searchtips
     )));
 
@@ -184,12 +187,11 @@ app.get('/search', (req, res, next) => {
     search.query(q).end(async (err, ids) => {
       if (err) return next(err);
       if (!ids.length) {
-        $doc.content.appendChild(h('h2', 'Search News'));
+        $doc.content.appendChild(h('h2', 'Search News 🔍'));
         $doc.content.appendChild(h('#searchform', h('form', {name: 'f', action: '/search'},
           h('input', {type: 'hidden', name: 't', value: 'news'}),
-          h('input', {type: 'text', name: 'q', placeholder: placeholder, required: true, value: q}),
-          ' ',
-          h('input', {type: 'submit', value: 'Search'}),
+          h('input.card.w-100', {type: 'text', name: 'q', placeholder: placeholder, required: true, value: q}),
+          h('input.btn.btn-small.primary', {type: 'submit', value: 'Search'}),
           searchtips,
           h('#errormsg', h('span', '"Nothing for you, JSer."'), h('br'), h('span', '0 result'))
         )));
@@ -197,15 +199,13 @@ app.get('/search', (req, res, next) => {
         return res.send($doc.outerHTML);
       } else {
         let news = await getNewsById(ids);
-        $doc.content.appendChild(h('h2', 'Search News'));
+        $doc.content.appendChild(h('h2', 'Search News 🔍'));
         $doc.content.appendChild(h('#searchform', h('form', {name: 'f', action: '/search'},
           h('input', {type: 'hidden', name: 't', value: 'news'}),
-          h('input', {type: 'text', name: 'q', placeholder: placeholder, required: true, value: q}),
-          ' ',
-          h('input', {type: 'submit', value: 'Search'}),
+          h('input.card.w-100', {type: 'text', name: 'q', placeholder: placeholder, required: true, value: q}),
+          h('input.btn.btn-small.primary', {type: 'submit', value: 'Search'}),
           searchtips,
-          h('#successmsg', `Found ${ids.length} result${ids.length > 1 ? 's': ''} for "${q}":`),
-          h('br')
+          h('#successmsg', `Found ${ids.length} result${ids.length > 1 ? 's': ''} for "${q}":`)
         )));
         $doc.content.appendChild(newsListToHTML(news, req.query));
 
@@ -242,7 +242,7 @@ app.get('/news/:news_id', async (req, res, next) => {
   $doc.title.textContent = `${news.title} - ${siteName}`;
   $doc.body.appendChild(h('script', '$(function() {$("input[name=post_comment]").click(post_comment);});'));
 
-  $doc.content.appendChild(h('section', {id: 'newslist'}, newsToHTML(news)));
+  $doc.content.appendChild(h('section', {id: 'news'}, newsToHTML(news)));
   if (top_comment) $doc.content.appendChild(top_comment);
   let comments = await renderCommentsForNews(news.id);
   if (comments) $doc.content.appendChild(comments);
@@ -250,8 +250,8 @@ app.get('/news/:news_id', async (req, res, next) => {
     $doc.content.appendChild(h('form', {name: 'f'}, h('input', {name: 'news_id', type: 'hidden', value: news.id}),
       h('input', {name: 'comment_id', type: 'hidden', value: -1}),
       h('input', {name: 'parent_id', type: 'hidden', value: -1}),
-      h('textarea', {name: 'comment', cols: 60, rows: 10}), h('br'),
-      h('input', {name: 'post_comment', type: 'submit', value: 'Send comment'})));
+      h('textarea.card.w-100', {name: 'comment', rows: 6}),
+      h('input.btn.btn-small.primary', {name: 'post_comment', type: 'submit', value: 'Send comment'})));
     $doc.content.appendChild(h('#errormsg'));
   }
 
@@ -287,14 +287,14 @@ app.get('/editnews/:news_id', async (req, res, next) => {
     h('form', {name: 'f'},
       h('input', {name: 'news_id', value: news.id, type: 'hidden'}),
       h('label', {for: 'title'}, 'title'),
-      h('input', {id: 'title', name: 'title', size: 80, value: news.title, type: 'text'}), h('br'),
+      h('input.card.w-100', {id: 'title', name: 'title', value: news.title, type: 'text'}),
       h('label', {for: 'url'}, 'url'),
-      h('input', {id: 'url', name: 'url', size: 60, value: _.escape(news.url), type: 'text'}), h('br'),
+      h('input.card.w-100', {id: 'url', name: 'url', value: _.escape(news.url), type: 'text'}),
       'or if you don\'t have an url type some text', h('br'),
       h('label', {for: 'text'}, 'text'),
-      h('textarea', {id: 'text', name: 'text', cols: 60, rows: 10}, _.escape(text)), h('br'),
-      h('input', {name: 'del', value: '1', type: 'checkbox'}), 'delete this news', h('br'),
-      h('input', {name: 'edit_news', value: 'Edit news', type: 'submit'})
+      h('textarea.card.w-100', {id: 'text', name: 'text', rows: 6}, text),
+      h('input', {id: 'del', name: 'del', value: '1', type: 'checkbox'}), ' ', h('label', {for: 'del'}, 'delete this news'), h('br'),
+      h('input.btn.btn-small.primary', {name: 'edit_news', value: 'Edit news', type: 'submit'})
     ));
 
   [newsToHTML(news), form, h('#errormsg')].forEach(node => {
@@ -337,13 +337,13 @@ app.get('/user/:username', async (req, res, next) => {
       h('li', h('a', {href: `/usernews/${encodeURIComponent(user.username)}/0`}, 'user news'))),
     (owner ? $doc.body.appendChild(h('script', '$(function(){$("input[name=update_profile]").click(update_profile);});')) &&
       [h('br'), h('form', {name: 'f'},
-        h('label', {for: 'email'}, 'email (not visible, used for gravatar)'), h('br'),
-        h('input', {id: 'email', name: 'email', size: 40, type: 'text', value: _.escape(user.email)}), h('br'),
-        h('label', {for: 'password'}, 'change password (optional)'), h('br'),
-        h('input', {name: 'password', size: 40, type: 'password'}), h('br'),
-        h('label', {for: 'about'}, 'about'), h('br'),
-        h('textarea', {id: 'about', name: 'about', cols: 60, rows: 10}, _.escape(user.about)), h('br'),
-        h('input', {name: 'update_profile', type: 'submit', value: 'Update profile'})
+        h('label', {for: 'email'}, 'email (not visible, used for gravatar)'),
+        h('input.card.w-100', {id: 'email', name: 'email', type: 'text', value: _.escape(user.email)}),
+        h('label', {for: 'password'}, 'change password (optional)'),
+        h('input.card.w-100', {name: 'password', type: 'password'}),
+        h('label', {for: 'about'}, 'about'),
+        h('textarea.card.w-100', {id: 'about', name: 'about', rows: 6}, _.escape(user.about)),
+        h('input.btn.btn-small.primary', {name: 'update_profile', type: 'submit', value: 'Update profile'})
       ), h('div', {id: 'errormsg'})] : '')));
 
   res.send($doc.outerHTML);
@@ -485,7 +485,7 @@ app.get('/reply/:news_id/:comment_id', async (req, res, next) => {
       h('input', {type: 'hidden', name: 'comment_id', value: -1}),
       h('input', {type: 'hidden', name: 'parent_id', value: comment_id}),
       h('textarea', {name: 'comment', cols: 60, rows: 10}), h('br'),
-      h('input', {type: 'submit', name: 'post_comment', value: 'Reply'})
+      h('input.btn.btn-small.primary', {type: 'submit', name: 'post_comment', value: 'Reply'})
     ), h('div', {id: 'errormsg'})
   ));
   res.send($doc.outerHTML);
@@ -525,7 +525,7 @@ app.get('/editcomment/:news_id/:comment_id', async (req, res, next) => {
       h('input', {type: 'hidden', name: 'comment_id',value: comment_id}),
       h('input', {type: 'hidden', name: 'parent_id', value: -1}),
       h('textarea', {name: 'comment', cols: 60, rows: 10}, comment.body), h('br'),
-      h('input', {name: 'post_comment', type: 'submit', value: 'Edit'})),
+      h('input.btn.btn-small.primary', {name: 'post_comment', type: 'submit', value: 'Edit'})),
     h('#errormsg'),
     h('.note', 'Note: to remove the comment, remove all the text and press Edit.')
   ].forEach( node => {
@@ -604,13 +604,13 @@ app.get('/submit', (req, res) => {
       h('form', {name: 'f'},
         h('input', {name: 'news_id', type: 'hidden', value: -1}),
         h('label', {for: 'title'}, 'title'),
-        h('input', {id: 'title', name: 'title', size: 80, type: 'text', value: (t ? _.escape(t) : '')}), h('br'),
+        h('input.card.w-100', {id: 'title', name: 'title', type: 'text', value: (t ? _.escape(t) : '')}), h('br'),
         h('label', {for: 'url'}, 'url'),
-        h('input', {id: 'url', name: 'url', size: 60, type: 'text', value: (u ? _.escape(u) : '')}), h('br'),
+        h('input.card.w-100', {id: 'url', name: 'url', type: 'text', value: (u ? _.escape(u) : '')}), h('br'),
         'or if you don\'t have an url type some text', h('br'),
         h('label', {for: 'text'}, 'text'),
-        h('textarea', {id: 'text', name: 'text', cols: 60, rows: 10}), h('br'),
-        h('input', {name: 'do_submit', type: 'submit', value: 'Submit'})
+        h('textarea.card.w-100', {id: 'text', name: 'text', rows: 6}), h('br'),
+        h('input.btn.btn-small.primary', {name: 'do_submit', type: 'submit', value: 'Submit'})
       )
     ),
     h('div', {id: 'errormsg'}),
@@ -629,12 +629,12 @@ app.get('/login', (req, res) => {
   $doc.content.appendChild(h('#login',
     h('form', {name: 'f'},
       h('label', {for: 'username'}, 'username'),
-      h('input', {id: 'username', name: 'username', type: 'text', required: true}),
+      h('input.card.w-100', {id: 'username', name: 'username', type: 'text', required: true}),
       h('label', {for: 'password'}, 'password'),
-      h('input', {id: 'password', name: 'password', type:'password', required: true}), h('br'),
-      h('input', {id: 'register', name: 'register', type: 'checkbox', value: 1}),
+      h('input.card.w-100', {id: 'password', name: 'password', type:'password', required: true}),
+      h('input', {id: 'register', name: 'register', type: 'checkbox', value: 1}), ' ',
       h('label', {for: 'register', style: {display: 'inline'}}, 'create account'), h('br'),
-      h('input', {name: 'do_login', type: 'submit', value: 'Login'})),
+      h('input.btn.btn-small.primary', {name: 'do_login', type: 'submit', value: 'Login'})),
     h('#errormsg'),
     h('a', {href: '/reset-password'}, 'reset password')
   ));
@@ -658,10 +658,10 @@ app.get('/reset-password', (req, res) => {
   h('div', {id: 'login'},
     h('form', {name: 'f'},
       h('label', {for: 'username'}, 'username'),
-      h('input', {id: 'username', name:'username', type: 'text'}),
+      h('input.card.w-100', {id: 'username', name:'username', type: 'text', required: true}),
       h('label', {for: 'email'}, 'email'),
-      h('input', {id: 'email', name: 'email', type: 'email'}), h('br'),
-      h('input', {name: 'do_reset', type: 'submit', value: 'Reset password'})
+      h('input.card.w-100', {id: 'email', name: 'email', type: 'email', required: true}), h('br'),
+      h('input.btn.btn-small.primary', {name: 'do_reset', type: 'submit', value: 'Reset password'})
     )
   ), h('div', {id: 'errormsg'})
   ].forEach(node => {
@@ -988,7 +988,7 @@ function applicationHeader () {
     return h('a', {href: ni[1]}, _.escape(ni[0]));
   }), navbar_replies_link, navbar_admin_link);
 
-  let rnavbar = h('nav', {id: 'account'}, $user ?
+  let rnavbar = h('nav.col', {id: 'account'}, $user ?
     [h('a', {href: `/user/${encodeURIComponent($user.username)}`},
       _.escape($user.username + ` (${$user.karma})`)
     ), ' | ',
@@ -998,7 +998,7 @@ function applicationHeader () {
 
   let mobile_menu = h('a', {href: '#', id: 'link-menu-mobile'}, '<~>');
 
-  return h('header',
+  return h('header.row',
     h('h1',
       h('a', {href: '/'}, _.escape(siteName) + ' ', h('small', version))
     ), navbar, rnavbar, mobile_menu

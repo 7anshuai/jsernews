@@ -123,12 +123,12 @@ function commentToHtml (c, u, show_parent = false) {
   let pre = h('pre');
   pre.innerHTML = urlsToLinks(_.escape(c.body.trim()));
   return h('article', {class: 'comment', style: indent, 'data-comment-id': comment_id, id: comment_id},
-    h('span', {class: 'avatar'}, (() => {
+    h('span.avatar', (() => {
       let email = u.email || '';
       let digest = hexdigest(email);
       return h('img', {src: `//gravatar.com/avatar/${digest}?s=48&d=mm`});
     })()),
-    h('span', {class: 'info'},
+    h('.info',
       h('span', {class: 'username'},
         h('a', {href: '/user/' + encodeURIComponent(u.username)}, _.escape(u.username))
       ), ' ',
