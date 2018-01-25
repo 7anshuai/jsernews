@@ -102,8 +102,11 @@ function post_comment() {
         comment_id: $("input[name=comment_id]").val(),
         parent_id: $("input[name=parent_id]").val(),
         comment: $("textarea[name=comment]").val(),
-        apisecret: apisecret
+        apisecret: typeof apisecret !== 'undefined' && apisecret
     };
+    if (typeof apisecret === 'undefined') {
+        return window.location.href = '/login?redirect=' + encodeURIComponent('/news/' + data.news_id);
+    }
     $.ajax({
         type: "POST",
         url: "/api/postcomment",

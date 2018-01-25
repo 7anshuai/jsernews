@@ -233,15 +233,16 @@ app.get('/news/:news_id', async (req, res, next) => {
 
   let html = $h.page(
     $h.section({id: 'newslist'}, newsToHTML(news)) + top_comment +
-    ($user && !news.del ?
+    await renderCommentsForNews(news.id) +
+    (!news.del ?
       $h.form({name: 'f'}, () => {
         return $h.hidden({name: 'news_id', value: news.id}) +
           $h.hidden({name: 'comment_id', value: -1}) +
           $h.hidden({name: 'parent_id', value: -1}) +
           $h.textarea({name: 'comment', cols: 60, rows: 10}) + $h.br() +
-          $h.button({name: 'post_comment', value: 'Send comment'});
-      }) + $h.div({id: 'errormsg'}) :
-      $h.br()) + await renderCommentsForNews(news.id)
+          ($user ? $h.button({name: 'post_comment', value: 'Send comment'}) : $h.button({name: 'post_comment', value: 'Login to send comment'}));
+      }) + $h.div({id: 'errormsg'}) : ''
+    )
   );
 
   res.send(html);
