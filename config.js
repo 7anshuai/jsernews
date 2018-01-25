@@ -2,7 +2,7 @@ module.exports = {
   // General
   siteName: 'jsernews',
   siteUrl: 'https://jsernews.com',
-  siteDescription: '',
+  siteDescription: 'JavaScript 开发者新闻',
 
   // Redis config
   redisURL: 'redis://127.0.0.1:6379',
