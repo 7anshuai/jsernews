@@ -537,11 +537,11 @@ app.get('/editcomment/:news_id/:comment_id', async (req, res, next) => {
 app.get('/about', (req, res) => {
   $doc.title.textContent = `About - ${siteName}`;
   $doc.content.appendChild(h('#about',
-    h('h2', `${siteName}`),
-    h('p', 'JSer News 是一个社区驱动的中文新闻网站，完全专注于 JavaScript 开发，HTML5，前端和 Node.js'),
-    h('h3', h('b', '成员')),
-    h('p', '创立与维护者: ', h('a', {href: 'http://7anshuai.js.org/'}, '@7anshuai')),
-    h('h3', h('b', '发帖规则：')),
+    h('h2', `${siteName} 是什么？`),
+    h('p', `${siteName} 是一个社区驱动的 JavaScript 中文新闻网站，完全专注于 JavaScript 开发，HTML5，前端和 Node.js`),
+    h('h3', '成员'),
+    h('p', '创立与维护者: ', h('a', {href: '/user/ts'}, '@ts')),
+    h('h3','发帖规则：'),
     h('ul',
       h('li', '编辑标题：只允许文章标题，不带博客名，不带日期等其他信息'),
       h('li', '编辑 URLs：不带跟踪代码'),
