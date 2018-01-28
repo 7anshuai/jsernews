@@ -49,7 +49,8 @@ app.use(async (req, res, next) => {
     h('title', `${siteName} - ${siteDescription}`),
     h('link', {href: '/favicon.ico', rel: 'shortcut icon'}),
     h('link', {rel: 'stylesheet', href: '/css/lit.css'}),
-    h('link', {href: `/css/style.css?v=${version}`, rel: 'stylesheet'}));
+    h('link', {href: `/css/style.css?v=${version}`, rel: 'stylesheet'}),
+    h('link', {rel: 'stylesheet', href: '//cdn.jsdelivr.net/gh/highlightjs/cdn-release@9.12.0/build/styles/default.min.css'}));
   let content = h('section#content');
   global.$doc = h('html',
     head,
@@ -60,7 +61,7 @@ app.use(async (req, res, next) => {
         content,
         h('hr'),
         applicationFooter()),
-      h('script', {src: '//code.jquery.com/jquery-3.1.1.min.js'}),
+      h('script', {src: '//cdn.jsdelivr.net/npm/zepto@1.2.0/dist/zepto.min.js'}),
       h('script', {src: `/js/app.js?v=${version}`}),
       $user ? h('script', `var apisecret = '${$user.apisecret}';`) : '',
       keyboardNavigation == 1 ? h('script', 'setKeyboardNavigation();') : '')
@@ -484,7 +485,7 @@ app.get('/reply/:news_id/:comment_id', async (req, res, next) => {
       h('input', {type: 'hidden', name: 'news_id', value: news.id}),
       h('input', {type: 'hidden', name: 'comment_id', value: -1}),
       h('input', {type: 'hidden', name: 'parent_id', value: comment_id}),
-      h('textarea', {name: 'comment', cols: 60, rows: 10}), h('br'),
+      h('textarea.card.w-100', {name: 'comment', rows: 6}), h('br'),
       h('input.btn.btn-small.primary', {type: 'submit', name: 'post_comment', value: 'Reply'})
     ), h('div', {id: 'errormsg'})
   ));
@@ -524,7 +525,7 @@ app.get('/editcomment/:news_id/:comment_id', async (req, res, next) => {
       h('input', {type: 'hidden', name: 'news_id', value: news.id}),
       h('input', {type: 'hidden', name: 'comment_id',value: comment_id}),
       h('input', {type: 'hidden', name: 'parent_id', value: -1}),
-      h('textarea', {name: 'comment', cols: 60, rows: 10}, comment.body), h('br'),
+      h('textarea.card.w-100', {name: 'comment', rows: 6}, comment.body), h('br'),
       h('input.btn.btn-small.primary', {name: 'post_comment', type: 'submit', value: 'Edit'})),
     h('#errormsg'),
     h('.note', 'Note: to remove the comment, remove all the text and press Edit.')

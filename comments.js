@@ -1,9 +1,26 @@
 const _ = require('underscore');
 const h = require('hyperscript');
+const marked = require('marked');
+
 const {commentEditTime, commentReplyShift, deletedUser} = require('./config');
 const {getNewsById} = require('./news');
 const {getUserById} = require('./user');
 const {hexdigest, numElapsed, strElapsed} = require('./utils');
+
+marked.setOptions({
+  highlight: function (code) {
+    return require('highlight.js').highlightAuto(code).value;
+  },
+  renderer: new marked.Renderer(),
+  gfm: true,
+  tables: true,
+  breaks: false,
+  pedantic: false,
+  sanitize: false,
+  smartLists: true,
+  smartypants: false,
+  xhtml: false
+});
 
 class Comment {
   constructor (redis, namespace, sort=null){
@@ -121,7 +138,7 @@ function commentToHtml (c, u, show_parent = false) {
 
   let comment_id = c.id ? `${news_id}-${c.id}` : '';
   let pre = h('pre');
-  pre.innerHTML = urlsToLinks(_.escape(c.body.trim()));
+  pre.innerHTML = marked(c.body.trim());
   return h('article', {class: 'comment', style: indent, 'data-comment-id': comment_id, id: comment_id},
     h('span.avatar', (() => {
       let email = u.email || '';
