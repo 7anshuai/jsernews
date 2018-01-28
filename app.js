@@ -251,7 +251,7 @@ app.get('/news/:news_id', async (req, res, next) => {
     $doc.content.appendChild(h('form', {name: 'f'}, h('input', {name: 'news_id', type: 'hidden', value: news.id}),
       h('input', {name: 'comment_id', type: 'hidden', value: -1}),
       h('input', {name: 'parent_id', type: 'hidden', value: -1}),
-      h('textarea.card.w-100', {name: 'comment', rows: 6}),
+      h('textarea.card.w-100', {name: 'comment', placeholder: 'You can write comment here in Markdown or HTML', rows: 6}),
       h('input.btn.btn-small.primary', {name: 'post_comment', type: 'submit', value: 'Send comment'})));
     $doc.content.appendChild(h('#errormsg'));
   }
@@ -288,12 +288,11 @@ app.get('/editnews/:news_id', async (req, res, next) => {
     h('form', {name: 'f'},
       h('input', {name: 'news_id', value: news.id, type: 'hidden'}),
       h('label', {for: 'title'}, 'title'),
-      h('input.card.w-100', {id: 'title', name: 'title', value: news.title, type: 'text'}),
+      h('input.card.w-100', {id: 'title', name: 'title', placeholder: 'Type your news title here', value: news.title, type: 'text'}),
       h('label', {for: 'url'}, 'url'),
-      h('input.card.w-100', {id: 'url', name: 'url', value: _.escape(news.url), type: 'text'}),
-      'or if you don\'t have an url type some text', h('br'),
+      h('input.card.w-100', {id: 'url', name: 'url', placeholder: 'Type your news url here', value: _.escape(news.url), type: 'text'}),
       h('label', {for: 'text'}, 'text'),
-      h('textarea.card.w-100', {id: 'text', name: 'text', rows: 6}, text),
+      h('textarea.card.w-100', {id: 'text', name: 'text', placeholder: 'If you don\'t have an url, type some text here in Markdown or HTML', rows: 6}, text),
       h('input', {id: 'del', name: 'del', value: '1', type: 'checkbox'}), ' ', h('label', {for: 'del'}, 'delete this news'), h('br'),
       h('input.btn.btn-small.primary', {name: 'edit_news', value: 'Edit news', type: 'submit'})
     ));
@@ -485,7 +484,7 @@ app.get('/reply/:news_id/:comment_id', async (req, res, next) => {
       h('input', {type: 'hidden', name: 'news_id', value: news.id}),
       h('input', {type: 'hidden', name: 'comment_id', value: -1}),
       h('input', {type: 'hidden', name: 'parent_id', value: comment_id}),
-      h('textarea.card.w-100', {name: 'comment', rows: 6}), h('br'),
+      h('textarea.card.w-100', {name: 'comment', placeholder: 'You can write comment here in Markdown or HTML', rows: 6}), h('br'),
       h('input.btn.btn-small.primary', {type: 'submit', name: 'post_comment', value: 'Reply'})
     ), h('div', {id: 'errormsg'})
   ));
@@ -525,7 +524,7 @@ app.get('/editcomment/:news_id/:comment_id', async (req, res, next) => {
       h('input', {type: 'hidden', name: 'news_id', value: news.id}),
       h('input', {type: 'hidden', name: 'comment_id',value: comment_id}),
       h('input', {type: 'hidden', name: 'parent_id', value: -1}),
-      h('textarea.card.w-100', {name: 'comment', rows: 6}, comment.body), h('br'),
+      h('textarea.card.w-100', {name: 'comment', placeholder: 'You can write comment here in Markdown or HTML', rows: 6}, comment.body), h('br'),
       h('input.btn.btn-small.primary', {name: 'post_comment', type: 'submit', value: 'Edit'})),
     h('#errormsg'),
     h('.note', 'Note: to remove the comment, remove all the text and press Edit.')
@@ -605,12 +604,11 @@ app.get('/submit', (req, res) => {
       h('form', {name: 'f'},
         h('input', {name: 'news_id', type: 'hidden', value: -1}),
         h('label', {for: 'title'}, 'title'),
-        h('input.card.w-100', {id: 'title', name: 'title', type: 'text', value: (t ? _.escape(t) : '')}), h('br'),
+        h('input.card.w-100', {id: 'title', name: 'title', type: 'text', placeholder: 'Type your story title here', value: (t ? _.escape(t) : '')}), h('br'),
         h('label', {for: 'url'}, 'url'),
-        h('input.card.w-100', {id: 'url', name: 'url', type: 'text', value: (u ? _.escape(u) : '')}), h('br'),
-        'or if you don\'t have an url type some text', h('br'),
+        h('input.card.w-100', {id: 'url', name: 'url', type: 'text', placeholder: 'Type your story url here', value: (u ? _.escape(u) : '')}), h('br'),
         h('label', {for: 'text'}, 'text'),
-        h('textarea.card.w-100', {id: 'text', name: 'text', rows: 6}), h('br'),
+        h('textarea.card.w-100', {id: 'text', name: 'text', rows: 6, placeholder: 'If you don\'t have an url, type some text here in Markdown or HTML'}), h('br'),
         h('input.btn.btn-small.primary', {name: 'do_submit', type: 'submit', value: 'Submit'})
       )
     ),
