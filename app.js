@@ -48,7 +48,8 @@ app.use(async (req, res, next) => {
     h('meta', {content: 'index', name: 'robots'}),
     h('title', `${siteName} - ${siteDescription}`),
     h('link', {href: '/favicon.ico', rel: 'shortcut icon'}),
-    h('link', {rel: 'stylesheet', href: '/css/lit.css'}),
+    h('link', {href: '/apple-touch-icon.png', rel: 'apple-touch-icon'}),
+    h('link', {rel: 'stylesheet', href: '/css/lit.css?v=${version}'}),
     h('link', {href: `/css/style.css?v=${version}`, rel: 'stylesheet'}),
     h('link', {rel: 'stylesheet', href: '//cdn.jsdelivr.net/gh/highlightjs/cdn-release@9.12.0/build/styles/default.min.css'}));
   let content = h('section#content');
