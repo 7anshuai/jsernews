@@ -42,7 +42,8 @@ app.use(async (req, res, next) => {
   global.$h = new HTMLGen();
   $h.append(() => {
     return $h.link({href: `/css/style.css?v${version}`, rel: 'stylesheet'}) +
-      $h.link({href: '/favicon.ico', rel: 'shortcut icon'});
+      $h.link({href: '/favicon.ico', rel: 'shortcut icon'}) +
+      $h.link({href: '/apple-touch-icon.png', rel: 'apple-touch-icon'});
   });
   $h.append(applicationHeader(), 'header');
   $h.append(applicationFooter, 'footer');
