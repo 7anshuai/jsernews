@@ -89,7 +89,7 @@ async function createUser(username, password, opt){
 //               failed (detected testing the first return value).
 async function createGitHubUser(github_user = {}){
   let {bio, blog, email, html_url, login} = github_user;
-  let isExists = await $r.exists(`username.to.id:${login}`);
+  let isExists = await $r.exists(`username.to.id:${login.toLowerCase()}`);
 
   if ($user) {
     if (isExists) return [null, null, 'There is already a GitHub account that belongs to you. Sign in with that account or delete it, then link it with your current account.'];
@@ -101,12 +101,12 @@ async function createGitHubUser(github_user = {}){
       github_id: $user.github_id || github_user.id
     });
 
-    await $r.set(`username.to.id:${login}`, $user.id);
+    await $r.set(`username.to.id:${login.toLowerCase()}`, $user.id);
     return [$user.auth, $user.apisecret, null];
   }
 
   if (isExists) {
-    let id = await $r.get(`username.to.id:${login}`);
+    let id = await $r.get(`username.to.id:${login.toLowerCase()}`);
     let user = await getUserById(id);
     await $r.hmset(`user:${id}`, {
       about: user.about || bio || '',
@@ -139,7 +139,7 @@ async function createGitHubUser(github_user = {}){
       'flags': id == 1 ? 'a' : '', // First user ever created (id = 1) is an admin
       'karma_incr_time': numElapsed()
     });
-    await $r.set(`username.to.id:${login}`, id);
+    await $r.set(`username.to.id:${login.toLowerCase()}`, id);
     await $r.set(`auth:${auth_token}`, id);
 
     return [auth_token, apisecret, null];
