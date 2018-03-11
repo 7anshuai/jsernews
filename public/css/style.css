@@ -7,6 +7,23 @@ body {
     margin: 0;
 }
 
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 400;
+}
+
+pre {
+    white-space: normal;
+}
+
+blockquote {
+    border-left: solid var(--light);
+    padding: 0 1em;
+}
+
+pre blockquote {
+    margin: 0;
+}
+
 header {
     position: relative;
 }
@@ -17,7 +34,6 @@ header h1 {
 
 header h1 a {
     color: #323330;
-    font-weight: 500;
 }
 
 header nav {
@@ -97,6 +113,68 @@ article.comment .info {
 
 footer {
     text-align: center;
+}
+
+.keyboard-help-banner {
+    left: 5%;
+    top: 5%;
+    width: 90%;
+    height: 12em;
+    color: #FFFFFF;
+    margin: 0;
+    padding: 1em 0 0;
+    position: fixed;
+    text-align: center;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.banner-foreground {
+    text-shadow: 1px 1px 7px #000000;
+    z-index: 1002;
+}
+
+.banner-background {
+    background: none repeat scroll 0 0 #000000;
+    /*border-radius: 10px 10px 10px 10px;*/
+    opacity: 0.8;
+    overflow: auto;
+    z-index: 1001;
+}
+
+.banner .primary-message, .banner .secondary-message {
+    font-family: sans-serif;
+    font-weight: bold;
+    margin: 0;
+}
+
+.banner .primary-message {
+    font-size: 200%;
+}
+
+.banner .secondary-message {
+    border-top: 1px solid #999999;
+    font-size: 150%;
+    padding-top: 0.5em;
+    margin: 0;
+}
+
+.secondary-message > p {
+    margin: 0;
+}
+
+#keyboard-help .key {
+    font-weight: bold;
+    padding-right: 0.25em;
+    text-align: right;
+    white-space: nowrap;
+    width: 50%;
+    clear: left;
+}
+
+#keyboard-help .desc {
+    font-weight: normal;
+    text-align: left;
 }
 
 @media(min-width:35em) {
