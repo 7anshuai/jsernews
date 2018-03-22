@@ -3,7 +3,7 @@ const h = require('hyperscript');
 const debug = require('debug')('jsernews:news');
 const reds = require('reds');
 
-const {newsEditTime, newsAgePadding, newsScoreLogStart, newsScoreLogBooster, newsSubmissionBreak, newsUpvoteMinKarma, newsDownvoteMinKarma, newsUpvoteKarmaCost, newsDownvoteKarmaCost, newsUpvoteKarmaTransfered, preventRepostTime, rankAgingFactor, siteUrl, topNewsAgeLimit, topNewsMaxLength, latestNewsPerPage, topNewsPerPage} = require('./config');
+const {newsMaxLength, newsEditTime, newsAgePadding, newsScoreLogStart, newsScoreLogBooster, newsSubmissionBreak, newsUpvoteMinKarma, newsDownvoteMinKarma, newsUpvoteKarmaCost, newsDownvoteKarmaCost, newsUpvoteKarmaTransfered, preventRepostTime, rankAgingFactor, siteUrl, topNewsAgeLimit, latestNewsPerPage, topNewsPerPage} = require('./config');
 const {getUserById, getUserKarma, incrementUserKarmaBy, isAdmin} = require('./user');
 const {numElapsed, strElapsed} = require('./utils');
 
@@ -165,7 +165,7 @@ async function editNews(news_id, title, url, text, user_id){
   // title+url anyway.
   let textpost = url.length == 0;
   if (textpost)
-    url = 'text://' + text.substring(0, topNewsMaxLength);
+    url = 'text://' + text.substring(0, newsMaxLength);
   // Even for edits don't allow to change the URL to the one of a
   // recently posted news.
   if (!textpost && url != news.url) {
@@ -205,7 +205,7 @@ async function insertNews(title, url, text, user_id){
   // title+url anyway.
   let textpost = url.length == 0;
   if (textpost)
-    url = 'text://' + text.substring(0, topNewsMaxLength);
+    url = 'text://' + text.substring(0, newsMaxLength);
 
   // Check for already posted news with the same URL.
   let id = await $r.get('url:' + url);
