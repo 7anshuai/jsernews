@@ -51,6 +51,7 @@ module.exports = {
   newsSubmissionBreak: 60*15,
   savedNewsPerPage: 10,
   topNewsAgeLimit: 3600*24*30,
+  topNewsMaxLength: 65536,
 
   // Footer links
   footerTwitterLink: 'https://twitter.com/jsernews',

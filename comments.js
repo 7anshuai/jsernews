@@ -2,7 +2,7 @@ const _ = require('underscore');
 const h = require('hyperscript');
 const marked = require('marked');
 
-const {commentEditTime, commentReplyShift, deletedUser} = require('./config');
+const {commentMaxLength, commentEditTime, commentReplyShift, deletedUser} = require('./config');
 const {getNewsById} = require('./news');
 const {getUserById} = require('./user');
 const {hexdigest, numElapsed, strElapsed} = require('./utils');
@@ -223,7 +223,7 @@ async function insertComment(news_id, user_id, comment_id, parent_id, body){
     }
     let comment = {
       score: 0,
-      body: body,
+      body: body.substring(0, commentMaxLength),
       parent_id: parent_id,
       user_id: user_id,
       ctime: numElapsed(),
@@ -263,7 +263,7 @@ async function insertComment(news_id, user_id, comment_id, parent_id, body){
       op: 'delete'
     };
   } else {
-    let update = {body: body};
+    let update = {body: body.substring(0, commentMaxLength)};
     if (+c.del == 1) update = {del: 0};
     if (!await global.comment.edit(news_id, comment_id, update)) return false;
     return {
