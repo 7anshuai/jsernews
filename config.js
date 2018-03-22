@@ -40,6 +40,7 @@ module.exports = {
   usernameRegexp: /^[a-zA-Z][a-zA-Z0-9_-]+$/,
 
   // News and ranking
+  newsMaxLength: 65536,
   newsAgePadding: 3600*8,
   topNewsPerPage: 30,
   latestNewsPerPage: 100,
@@ -51,7 +52,6 @@ module.exports = {
   newsSubmissionBreak: 60*15,
   savedNewsPerPage: 10,
   topNewsAgeLimit: 3600*24*30,
-  topNewsMaxLength: 65536,
 
   // Footer links
   footerTwitterLink: 'https://twitter.com/jsernews',
