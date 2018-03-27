@@ -334,7 +334,7 @@ function newsToHTML (news, opt) {
     downclass += ' voted';
     upclass += ' disabled';
   }
-  return h('article', {'data-news-id': news.id},
+  return h('article.news', {'data-news-id': news.id},
     h('a', {href: '#up', class: upclass}, '▲'),
     h('h3', h('a', {href: news.url, rel: 'nofollow'}, _.escape(news.title))),
     h('address', (domain ? `at ${_.escape(domain)}` : ''), (($user && $user.id == news.user_id && news.ctime > (numElapsed() - newsEditTime)) ? [' ', h('a', {href: `/editnews/${news.id}`}, '[edit]')] : '')),
@@ -375,7 +375,7 @@ function newsToRSS(news){
 // the Redis hash representing the news in the DB) this function will render
 // the HTML needed to show this news.
 function newsListToHTML(news, opt) {
-  return h('section#newslist', (() => {
+  return h('#newslist', (() => {
     let aux = [];
     news.forEach((n) => {
       aux.push(newsToHTML(n, opt));

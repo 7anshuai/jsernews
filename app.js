@@ -122,7 +122,7 @@ app.get('/latest/:start', async (req, res, next) => {
   let newslist = await listItems(paginate);
   $doc.title.textContent = `Latest News - ${siteName}`;
   $doc.content.appendChild(h('h2', 'Latest News'));
-  $doc.content.appendChild(h('section#newslist', newslist));
+  $doc.content.appendChild(h('#newslist', newslist));
   res.send($doc.outerHTML);
 });
 
@@ -244,7 +244,7 @@ app.get('/news/:news_id', async (req, res, next) => {
   $doc.title.textContent = `${news.title} - ${siteName}`;
   $doc.body.appendChild(h('script', '$(function() {$("input[name=post_comment]").click(post_comment);});'));
 
-  $doc.content.appendChild(h('section', {id: 'news'}, newsToHTML(news)));
+  $doc.content.appendChild(newsToHTML(news));
   if (top_comment) $doc.content.appendChild(top_comment);
   let comments = await renderCommentsForNews(news.id);
   if (comments) $doc.content.appendChild(comments);
@@ -375,7 +375,7 @@ app.get('/usernews/:username/:start', async (req, res, next) => {
 
   $doc.title.textContent = `News posted by ${user.username} - ${siteName}`;
   $doc.content.appendChild(h('h2', `News posted by ${user.username}`));
-  $doc.content.appendChild(h('section#newslist', newslist));
+  $doc.content.appendChild(h('#newslist', newslist));
   res.send($doc.outerHTML);
 });
 
@@ -398,7 +398,7 @@ app.get('/saved/:start', async (req, res, next) => {
   let newslist = await listItems(paginate);
   $doc.title.textContent = `Saved news - ${siteName}`;
   $doc.content.appendChild(h('h2', 'You saved News'));
-  $doc.content.appendChild(h('section#newslist', newslist));
+  $doc.content.appendChild(h('#newslist', newslist));
   res.send($doc.outerHTML);
 });
 

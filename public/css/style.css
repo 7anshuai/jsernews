@@ -11,17 +11,9 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 400;
 }
 
-pre {
-    white-space: normal;
-}
-
 blockquote {
     border-left: solid var(--light);
     padding: 0 1em;
-}
-
-pre blockquote {
-    margin: 0;
 }
 
 header {
@@ -64,48 +56,57 @@ header nav a {
     background-color: #fff;
 }
 
-#newslist article {
+#newslist .news {
     border: 1px dashed transparent;
 }
 
-#newslist article.active {
+#newslist .news.active {
     border: 1px dashed var(--primary-color);
 }
 
-#content article a,
-#content article address,
-#content article h3 {
+.news a,
+.news address,
+.news h3 {
     display: inline;
 }
 
-#content article a::after,
-#content article address::after,
-#content article h3::after {
+.news a::after,
+.news address::after,
+.news h3::after {
     content: ' ';
 }
 
-article .uparrow.disabled,
-article .downarrow.disabled {
+.news .uparrow.disabled,
+.news .downarrow.disabled {
     visibility: hidden;
 }
 
-article .uparrow.voted {
+.news .uparrow.voted {
     color: #99dd99;
 }
 
-article .downarrow.voted {
+.news .downarrow.voted {
     color: #dd9999;
 }
 
-article.comment .avatar img,
+.comment > pre {
+    white-space: normal;
+}
+
+.comment > pre > blockquote {
+    margin: 0;
+}
+
+.comment .avatar img,
 .userinfo .avatar img {
     vertical-align: bottom;
 }
 
-article.comment .info {
+.comment .info {
     display: inline-block;
     margin-left: .5em;
 }
+
 .userinfo h2 {
     display: inline;
     margin-left: .5em;
