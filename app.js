@@ -49,7 +49,7 @@ app.use(async (req, res, next) => {
     h('title', `${siteName} - ${siteDescription}`),
     h('link', {href: '/favicon.ico', rel: 'shortcut icon'}),
     h('link', {href: '/apple-touch-icon.png', rel: 'apple-touch-icon'}),
-    h('link', {rel: 'stylesheet', href: '/css/lit.css?v=${version}'}),
+    h('link', {rel: 'stylesheet', href: `/css/lit.css?v=${version}`}),
     h('link', {href: `/css/style.css?v=${version}`, rel: 'stylesheet'}),
     h('link', {rel: 'stylesheet', href: '//cdn.jsdelivr.net/gh/highlightjs/cdn-release@9.12.0/build/styles/default.min.css'}));
   let content = h('section#content');
@@ -63,6 +63,7 @@ app.use(async (req, res, next) => {
         h('hr'),
         applicationFooter()),
       h('script', {src: '//cdn.jsdelivr.net/npm/zepto@1.2.0/dist/zepto.min.js'}),
+      h('script', {src: '//cdn.jsdelivr.net/npm/zepto@1.2.0/src/fx.js'}),
       h('script', {src: `/js/app.js?v=${version}`}),
       $user ? h('script', `var apisecret = '${$user.apisecret}';`) : '',
       keyboardNavigation == 1 ? h('script', 'setKeyboardNavigation();') : '')

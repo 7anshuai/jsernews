@@ -97,6 +97,10 @@ header nav a {
     margin: 0;
 }
 
+.comment > pre > p > code {
+    background-color: var(--light);
+}
+
 .comment .avatar img,
 .userinfo .avatar img {
     vertical-align: bottom;
