@@ -342,9 +342,11 @@ function newsToHTML (news, opt) {
     h('p', h('span', {class: 'upvotes'}, `${news.up}`), ' up and ',
       h('span', {class: 'downvotes'}, `${news.down}`), ' down, posted by ',
       h('a', {href: `/user/${encodeURIComponent(news.username)}`}, _.escape(news.username)), ' ', strElapsed(news.ctime), ' ',
-      h('a', {href: `/news/${news.id}`}, parseInt(news.comments) != 0 ? `${news.comments} comment${news.comments > 1 ? 's' : ''}` : 'discuss'), ($user && isAdmin($user)
-        ? [' - ', h('a', {href: `/editnews/${news.id}`}, 'edit'), ' - ', h('a', {href: `https://twitter.com/intent/tweet?url=${siteUrl}/news/${news.id}&text=${encodeURIComponent(news.title)} - `}, 'tweet')]
-        : '')
+      h('a', {href: `/news/${news.id}`}, parseInt(news.comments) != 0 ? `${news.comments} comment${news.comments > 1 ? 's' : ''}` : 'discuss'),
+      ($user && isAdmin($user)
+        ? [' - ', h('a', {href: `/editnews/${news.id}`}, 'edit')]
+        : ''),
+      [' - ', h('a', {href: `https://twitter.com/intent/tweet?url=${siteUrl}/news/${news.id}&text=${encodeURIComponent(news.title)} - `}, 'tweet')]
     ), (opt && opt.debug && $user && isAdmin($user)
       ? ` id: ${news.id} score: ${news.score} rank: ${computeNewsRank(news)} zset_rank: `
       : '')

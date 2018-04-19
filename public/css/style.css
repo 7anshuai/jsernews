@@ -41,6 +41,7 @@ header nav a {
     position: absolute;
     right: 0;
     top: 0;
+    line-height: 3em;
 }
 
 #account a {
