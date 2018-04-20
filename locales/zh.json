@@ -1,0 +1,28 @@
+{
+  "top": "头条",
+  "latest": "最新",
+  "random": "随机",
+  "replies": "回复",
+  "search": "搜索",
+  "submit": "提交",
+  "admin": "管理",
+  "login / register": "登录／注册",
+  "logout": "登出",
+  "sign in with GitHub": "通过 GitHub 登录",
+
+  "about": "关于",
+  "source code": "源码",
+  "rss feed": "订阅",
+  "twitter": "推特",
+
+  "top news": "头条新闻",
+  "latest news": "最新消息",
+  "search news": "搜索新闻",
+
+  "now": "刚刚",
+  "day": "天",
+  "hour": "小时",
+  "minute": "分钟",
+  "second": "秒",
+  "ago": "前",
+  }

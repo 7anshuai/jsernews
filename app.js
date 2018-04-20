@@ -15,6 +15,7 @@ const _ = require('underscore');
 const debug = require('debug')('jsernews:app');
 const fetch = require('node-fetch');
 const h = require('hyperscript');
+const i18n = require('i18n');
 const reds = require('reds');
 
 const {Comment, commentToHtml, computeCommentScore, getUserComments, insertComment, voteComment, renderCommentsForNews, renderCommentSubthread} = require('./comments');
@@ -34,6 +35,16 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// setup locales
+i18n.configure({
+  locales: ['en', 'zh'],
+  //defaultLocale: 'zh',
+  directory: __dirname + '/locales',
+  queryParameter: 'lang',
+  register: global
+});
+app.use(i18n.init);
 
 // before do block
 app.use(async (req, res, next) => {
@@ -95,7 +106,7 @@ app.use(async (req, res, next) => {
 app.get('/', async (req, res) => {
   let [news] = await getTopNews();
 
-  $doc.content.appendChild(h('h2', 'Top News'));
+  $doc.content.appendChild(h('h2', __('top news')));
   $doc.content.appendChild(newsListToHTML(news, req.query));
   res.send($doc.outerHTML);
 });
@@ -121,8 +132,8 @@ app.get('/latest/:start', async (req, res, next) => {
     link: '/latest/$'
   };
   let newslist = await listItems(paginate);
-  $doc.title.textContent = `Latest News - ${siteName}`;
-  $doc.content.appendChild(h('h2', 'Latest News'));
+  $doc.title.textContent = `${__('latest news')} - ${siteName}`;
+  $doc.content.appendChild(h('h2', __('latest news')));
   $doc.content.appendChild(h('#newslist', newslist));
   res.send($doc.outerHTML);
 });
@@ -174,9 +185,9 @@ app.get('/search', (req, res, next) => {
   let placeholder = placeholders[random];
   let searchtips = h('.searchtips', 'Simple full text search by ', h('a', {href: 'https://github.com/tj/reds'}, 'reds'),', only support English now.');
 
-  $doc.title.textContent = `Search News - ${siteName}`;
+  $doc.title.textContent = `${__('search news')} - ${siteName}`;
   if (!q) {
-    $doc.content.appendChild(h('h2', 'Search News 🔍'));
+    $doc.content.appendChild(h('h2', __('search news') + ' 🔍'));
     $doc.content.appendChild(h('#searchform', h('form', {name: 'f', action: '/search'},
       h('input', {type: 'hidden', name: 't', value: 'news'}),
       h('input.card.w-100', {type: 'text', name: 'q', placeholder: placeholder, required: true}),
@@ -971,19 +982,19 @@ async function allowedToPostInSeconds(){
 // Navigation, header and footer
 function applicationHeader () {
   let navitems = [
-    ['top', '/'],
-    ['latest', '/latest/0'],
-    ['random', '/random'],
-    ['search', '/search'],
-    ['submit', '/submit']
+    [__('top'), '/'],
+    [__('latest'), '/latest/0'],
+    [__('random'), '/random'],
+    [__('search'), '/search'],
+    [__('submit'), '/submit']
   ];
 
   let navbar_replies_link = $user ? h('a.replies', {href: '/replies'}, (() => {
     let count = $user.replies || 0;
-    return ['replies ', (parseInt(count) > 0 ? h('sup', count) : '')];
+    return [__('replies'), (parseInt(count) > 0 ? [' ', h('sup', count)] : '')];
   })()) : '';
 
-  let navbar_admin_link = $user && isAdmin($user) ? h('a', {href: '/admin'}, h('b', 'admin')) : '';
+  let navbar_admin_link = $user && isAdmin($user) ? h('a', {href: '/admin'}, h('b', __('admin'))) : '';
 
   let navbar = h('nav', navitems.map((ni) => {
     return h('a', {href: ni[1]}, _.escape(ni[0]));
@@ -993,8 +1004,8 @@ function applicationHeader () {
     [h('a', {href: `/user/${encodeURIComponent($user.username)}`},
       _.escape($user.username + ` (${$user.karma})`)
     ), ' | ',
-    h('a', {href: `/logout?apisecret=${$user.apisecret}`}, 'logout')] :
-    h('a', {href: '/login'}, 'login / register')
+    h('a', {href: `/logout?apisecret=${$user.apisecret}`}, __('logout'))] :
+    h('a', {href: '/login'}, __('login / register'))
   );
 
   let mobile_menu = h('a', {href: '#', id: 'link-menu-mobile'}, '<~>');
@@ -1008,10 +1019,10 @@ function applicationHeader () {
 
 function applicationFooter() {
   let links = [
-    ['about', '/about'],
-    ['source code', 'https://github.com/7anshuai/jsernews'],
-    ['rss feed', '/rss'],
-    ['twitter', footerTwitterLink]
+    [__('about'), '/about'],
+    [__('source code'), 'https://github.com/7anshuai/jsernews'],
+    [__('rss feed'), '/rss'],
+    [__('twitter'), footerTwitterLink]
   ];
 
   return [

@@ -1,0 +1,29 @@
+{
+  "top": "top",
+  "latest": "latest",
+  "random": "random",
+  "replies": "replies",
+  "search": "search",
+  "submit": "submit",
+  "admin": "admin",
+  "login / register": "login / register",
+  "logout": "logout",
+  "sign in with GitHub": "sign in with GitHub",
+
+  "about": "about",
+  "source code": "source code",
+  "rss feed": "rss feed",
+  "twitter": "twitter",
+
+  "top news": "top news",
+  "latest news": "latest news",
+  "search news": "search news",
+
+  "now": "now",
+  "day": "day",
+  "hour": "hour",
+  "minute": "minute",
+  "second": "second",
+  "ago": "ago",
+  "replies ": "replies "
+}

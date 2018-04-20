@@ -7,7 +7,9 @@
     "globals": {
         "$doc": true,
         "$r": true,
-        "$user": true
+        "$user": true,
+        "__": true,
+        "getLocale": true
     },
     "parserOptions": {
         "ecmaVersion": 2017
