@@ -6,9 +6,17 @@
   "search": "search",
   "submit": "submit",
   "admin": "admin",
+  "English": "English",
+  "Chinese": "中文",
   "login / register": "login / register",
   "logout": "logout",
   "sign in with GitHub": "sign in with GitHub",
+
+  "username": "username",
+  "password": "password",
+  "create account": "create account",
+  "login": "login",
+  "reset password": "reset password",
 
   "about": "about",
   "source code": "source code",
@@ -24,6 +32,5 @@
   "hour": "hour",
   "minute": "minute",
   "second": "second",
-  "ago": "ago",
-  "replies ": "replies "
+  "ago": "ago"
 }

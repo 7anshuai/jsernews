@@ -40,6 +40,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 i18n.configure({
   locales: ['en', 'zh'],
   //defaultLocale: 'zh',
+  cookie: 'locale',
   directory: __dirname + '/locales',
   queryParameter: 'lang',
   register: global
@@ -99,6 +100,11 @@ app.use(async (req, res, next) => {
       }
     });
   });
+
+  // set locale cookie
+  let lang = req.query.lang;
+  if (lang && ['en', 'zh'].includes(lang))
+    res.cookie('locale', lang, {expires: new Date('Thu, 1 Aug 2030 20:00:00 UTC'), path: '/'});
 
   next();
 });
@@ -191,7 +197,7 @@ app.get('/search', (req, res, next) => {
     $doc.content.appendChild(h('#searchform', h('form', {name: 'f', action: '/search'},
       h('input', {type: 'hidden', name: 't', value: 'news'}),
       h('input.card.w-100', {type: 'text', name: 'q', placeholder: placeholder, required: true}),
-      h('input.btn.btn-small.primary', {type: 'submit', value: 'Search'}),
+      h('input.btn.btn-small.primary', {type: 'submit', value: __('search')}),
       searchtips
     )));
 
@@ -201,11 +207,11 @@ app.get('/search', (req, res, next) => {
     search.query(q).end(async (err, ids) => {
       if (err) return next(err);
       if (!ids.length) {
-        $doc.content.appendChild(h('h2', 'Search News 🔍'));
+        $doc.content.appendChild(h('h2', __('search news') + ' 🔍'));
         $doc.content.appendChild(h('#searchform', h('form', {name: 'f', action: '/search'},
           h('input', {type: 'hidden', name: 't', value: 'news'}),
           h('input.card.w-100', {type: 'text', name: 'q', placeholder: placeholder, required: true, value: q}),
-          h('input.btn.btn-small.primary', {type: 'submit', value: 'Search'}),
+          h('input.btn.btn-small.primary', {type: 'submit', value: __('search')}),
           searchtips,
           h('#errormsg', h('span', '"Nothing for you, JSer."'), h('br'), h('span', '0 result'))
         )));
@@ -213,11 +219,11 @@ app.get('/search', (req, res, next) => {
         return res.send($doc.outerHTML);
       } else {
         let news = await getNewsById(ids);
-        $doc.content.appendChild(h('h2', 'Search News 🔍'));
+        $doc.content.appendChild(h('h2', __('search news') + ' 🔍'));
         $doc.content.appendChild(h('#searchform', h('form', {name: 'f', action: '/search'},
           h('input', {type: 'hidden', name: 't', value: 'news'}),
           h('input.card.w-100', {type: 'text', name: 'q', placeholder: placeholder, required: true, value: q}),
-          h('input.btn.btn-small.primary', {type: 'submit', value: 'Search'}),
+          h('input.btn.btn-small.primary', {type: 'submit', value: __('search')}),
           searchtips,
           h('#successmsg', `Found ${ids.length} result${ids.length > 1 ? 's': ''} for "${q}":`)
         )));
@@ -640,15 +646,15 @@ app.get('/login', (req, res) => {
   $doc.body.appendChild(h('script', '$(function() {$("form[name=f]").submit(login);});'));
   $doc.content.appendChild(h('#login',
     h('form', {name: 'f'},
-      h('label', {for: 'username'}, 'username'),
+      h('label', {for: 'username'}, __('username')),
       h('input.card.w-100', {id: 'username', name: 'username', type: 'text', required: true}),
-      h('label', {for: 'password'}, 'password'),
+      h('label', {for: 'password'}, __('password')),
       h('input.card.w-100', {id: 'password', name: 'password', type:'password', required: true}),
       h('input', {id: 'register', name: 'register', type: 'checkbox', value: 1}), ' ',
-      h('label', {for: 'register', style: {display: 'inline'}}, 'create account'), h('br'),
-      h('input.btn.btn-small.primary', {name: 'do_login', type: 'submit', value: 'Login'})),
+      h('label', {for: 'register', style: {display: 'inline'}}, __('create account')), h('br'),
+      h('input.btn.btn-small.primary', {name: 'do_login', type: 'submit', value: __('login')})),
     h('#errormsg'),
-    h('a', {href: '/reset-password'}, 'reset password')
+    h('a', {href: '/reset-password'}, __('reset password'))
   ));
 
   res.send($doc.outerHTML);

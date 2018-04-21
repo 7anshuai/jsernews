@@ -6,9 +6,17 @@
   "search": "搜索",
   "submit": "提交",
   "admin": "管理",
+  "English": "English",
+  "Chinese": "中文",
   "login / register": "登录／注册",
   "logout": "登出",
   "sign in with GitHub": "通过 GitHub 登录",
+
+  "username": "用户名",
+  "password": "密码",
+  "create account": "创建账户",
+  "login": "登录",
+  "reset password": "重置密码",
 
   "about": "关于",
   "source code": "源码",
@@ -25,4 +33,4 @@
   "minute": "分钟",
   "second": "秒",
   "ago": "前"
-  }
+}
