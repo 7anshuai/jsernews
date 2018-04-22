@@ -12,11 +12,15 @@
   "logout": "登出",
   "sign in with GitHub": "通过 GitHub 登录",
 
+  "email": "邮箱",
   "username": "用户名",
   "password": "密码",
   "create account": "创建账户",
   "login": "登录",
   "reset password": "重置密码",
+  "password reset procedure": "欢迎来到密码重置程序。",
+  "specify the username and the email" : "请指定您用于注册网站的用户名和电子邮件地址。",
+  "recover password note": "请注意，如果您未设置电子邮件，则无法恢复您的密码。",
 
   "about": "关于",
   "source code": "源码",

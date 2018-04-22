@@ -37,6 +37,10 @@ header nav a {
     display: block;
 }
 
+header nav.language a {
+    display: inline;
+}
+
 #link-menu-mobile {
     position: absolute;
     right: 0;
@@ -193,6 +197,9 @@ footer {
     header nav a {
         display: inline;
         margin-left: 1em;
+    }
+    header .language a:last-child {
+        margin-left: 0;
     }
     header.row {
         border-spacing: 0;

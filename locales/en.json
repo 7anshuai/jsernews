@@ -12,11 +12,15 @@
   "logout": "logout",
   "sign in with GitHub": "sign in with GitHub",
 
+  "email": "email",
   "username": "username",
   "password": "password",
   "create account": "create account",
   "login": "login",
   "reset password": "reset password",
+  "password reset procedure": "Welcome to the password reset procedure.",
+  "specify the username and the email" : "Please specify the username and the email address you used to register to the site.",
+  "recover password note": "Note that if you did not specify an email it is impossible for you to recover your password.",
 
   "about": "about",
   "source code": "source code",

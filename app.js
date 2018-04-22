@@ -554,7 +554,7 @@ app.get('/editcomment/:news_id/:comment_id', async (req, res, next) => {
 });
 
 app.get('/about', (req, res) => {
-  $doc.title.textContent = `About - ${siteName}`;
+  $doc.title.textContent = `${__('about')} - ${siteName}`;
   $doc.content.appendChild(h('#about',
     h('h2', `${siteName} 是什么？`),
     h('p', `${siteName} 是一个社区驱动的 JavaScript 中文新闻网站，完全专注于 JavaScript 开发，HTML5，前端和 Node.js`),
@@ -669,17 +669,21 @@ app.get('/logout', async (req, res) => {
 });
 
 app.get('/reset-password', (req, res) => {
-  $doc.title.textContent = `Reset Password - ${siteName}`;
+  $doc.title.textContent = `${__('reset password')} - ${siteName}`;
   $doc.body.appendChild(h('script', '$(function() {$("form[name=f]").submit(reset_password);});'));
-  [ h('p', 'Welcome to the password reset procedure. Please specify the username and the email address you used to register to the site. ', h('br'),
-    h('b', 'Note that if you did not specify an email it is impossible for you to recover your password.')),
+  [h('p',
+    __('password reset procedure'),
+    h('br'),
+    __('specify the username and the email'),
+    h('br'),
+    h('b', __('recover password note'))),
   h('div', {id: 'login'},
     h('form', {name: 'f'},
-      h('label', {for: 'username'}, 'username'),
+      h('label', {for: 'username'}, __('username')),
       h('input.card.w-100', {id: 'username', name:'username', type: 'text', required: true}),
-      h('label', {for: 'email'}, 'email'),
+      h('label', {for: 'email'}, __('email')),
       h('input.card.w-100', {id: 'email', name: 'email', type: 'email', required: true}), h('br'),
-      h('input.btn.btn-small.primary', {name: 'do_reset', type: 'submit', value: 'Reset password'})
+      h('input.btn.btn-small.primary', {name: 'do_reset', type: 'submit', value: __('reset password')})
     )
   ), h('div', {id: 'errormsg'})
   ].forEach(node => {
@@ -1006,6 +1010,12 @@ function applicationHeader () {
     return h('a', {href: ni[1]}, _.escape(ni[0]));
   }), navbar_replies_link, navbar_admin_link);
 
+  let cnavbar = h('nav', {class: 'language'}, [
+    h('a', {href: '?lang=zh'}, __('Chinese')),
+    ' / ',
+    h('a', {href: '?lang=en'}, __('English'))
+  ]);
+
   let rnavbar = h('nav.col', {id: 'account'}, $user ?
     [h('a', {href: `/user/${encodeURIComponent($user.username)}`},
       _.escape($user.username + ` (${$user.karma})`)
@@ -1019,7 +1029,7 @@ function applicationHeader () {
   return h('header.row',
     h('h1',
       h('a', {href: '/'}, _.escape(siteName) + ' ', h('small', version))
-    ), navbar, rnavbar, mobile_menu
+    ), navbar, cnavbar, rnavbar, mobile_menu
   );
 }
 
