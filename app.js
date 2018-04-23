@@ -529,20 +529,20 @@ app.get('/submit', (req, res) => {
   let {t, u} = req.query;
   if (!$user) return res.redirect(`/login?redirect=${$h.urlencode(req.originalUrl)}`);
   $h.setTitle(`Submit a new story - ${siteName}`);
-  $h.append($h.script('$(function() {$("input[name=do_submit]").click(submit);});'), 'body');
+  $h.append($h.script('$(function() {$("form[name=f]").submit(submit);});'), 'body');
   res.send($h.page(
     $h.h2('Submit a new story') +
     $h.div({id: 'submitform'},
       $h.form({name: 'f'},
         $h.hidden({name: 'news_id', value: -1}) +
         $h.label({for: 'title'}, 'title') +
-        $h.text({id: 'title', name: 'title', size: 80, value: (t ? $h.entities(t) : '')}) + $h.br() +
+        $h.text({id: 'title', name: 'title', size: 80, value: (t ? $h.entities(t) : ''), required: true}) + $h.br() +
         $h.label({for: 'url'}, 'url') +
         $h.text({id: 'url', name: 'url', size: 60, value: (u ? $h.entities(u) : '')}) + $h.br() +
         'or if you don\'t have an url type some text' + $h.br() +
         $h.label({for: 'text'}, 'text') +
         $h.textarea({id: 'text', name: 'text', cols: 60, rows: 10}) + $h.br() +
-        $h.button({name: 'do_submit', value: 'Submit'})
+        $h.input({name: 'do_submit', type: 'submit', value: 'Submit'})
       )
     ) +
     $h.div({id: 'errormsg'}) +
