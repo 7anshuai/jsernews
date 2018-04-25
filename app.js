@@ -617,13 +617,13 @@ app.get('/submit', (req, res) => {
   let bl = `javascript:window.location=%22${siteUrl}/submit?u=%22+encodeURIComponent(document.location)+%22&t=%22+encodeURIComponent(document.title)`;
   if (!$user) return res.redirect(`/login?redirect=${encodeURIComponent(req.originalUrl)}`);
   $doc.title.textContent = `Submit a new story - ${siteName}`;
-  $doc.body.appendChild(h('script', '$(function() {$("input[name=do_submit]").click(submit);});'));
+  $doc.body.appendChild(h('script', '$(function() {$("form[name=f]").submit(submit);});'));
   [ h('h2', 'Submit a new story'),
     h('div', {id: 'submitform'},
       h('form', {name: 'f'},
         h('input', {name: 'news_id', type: 'hidden', value: -1}),
         h('label', {for: 'title'}, 'title'),
-        h('input.card.w-100', {id: 'title', name: 'title', type: 'text', placeholder: 'Type your story title here', value: (t ? _.escape(t) : '')}), h('br'),
+        h('input.card.w-100', {id: 'title', name: 'title', type: 'text', placeholder: 'Type your story title here', value: (t ? _.escape(t) : ''), required: true}), h('br'),
         h('label', {for: 'url'}, 'url'),
         h('input.card.w-100', {id: 'url', name: 'url', type: 'text', placeholder: 'Type your story url here', value: (u ? _.escape(u) : '')}), h('br'),
         h('label', {for: 'text'}, 'text'),
