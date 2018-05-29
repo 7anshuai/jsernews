@@ -76,9 +76,13 @@ app.use(async (req, res, next) => {
         applicationFooter()),
       h('script', {src: '//cdn.jsdelivr.net/npm/zepto@1.2.0/dist/zepto.min.js'}),
       h('script', {src: '//cdn.jsdelivr.net/npm/zepto@1.2.0/src/fx.js'}),
+      h('script', {src: '//cdn.jsdelivr.net/npm/autosize@4.0.2/dist/autosize.min.js'}),
       h('script', {src: `/js/app.js?v=${version}`}),
-      $user ? h('script', `var apisecret = '${$user.apisecret}';`) : '',
-      keyboardNavigation == 1 ? h('script', 'setKeyboardNavigation();') : '')
+      $user ? h('script', `
+        var apisecret = '${$user.apisecret}';
+        ${keyboardNavigation == 1 ? 'setKeyboardNavigation();' : ''}
+      `) : ''
+    )
   );
   $doc.head = head;
   $doc.title = head.childNodes[3];
@@ -260,7 +264,12 @@ app.get('/news/:news_id', async (req, res, next) => {
   }
 
   $doc.title.textContent = `${news.title} - ${siteName}`;
-  $doc.body.appendChild(h('script', '$(function() {$("input[name=post_comment]").click(post_comment);});'));
+  $doc.body.appendChild(
+    h('script', `$(function() {
+      autosize(document.querySelector('[name=comment]'));
+      $("input[name=post_comment]").click(post_comment);
+    });`)
+  );
 
   $doc.content.appendChild(newsToHTML(news));
   if (top_comment) $doc.content.appendChild(top_comment);
@@ -302,7 +311,13 @@ app.get('/editnews/:news_id', async (req, res, next) => {
   }
 
   $doc.title.textContent = `Edit news - ${siteName}`;
-  $doc.body.appendChild(h('script', '$(function() {$("input[name=edit_news]").click(submit);});'));
+  $doc.body.appendChild(
+    h('script', `$(function() {
+      autosize(document.getElementById('text'));
+      $("input[name=edit_news]").click(submit);
+    });`)
+  );
+
   let form = h('div', {id: 'submitform'},
     h('form', {name: 'f'},
       h('input', {name: 'news_id', value: news.id, type: 'hidden'}),
@@ -495,7 +510,12 @@ app.get('/reply/:news_id/:comment_id', async (req, res, next) => {
   let user = await getUserById(comment.user_id) || deletedUser;
 
   $doc.title.textContent = `Reply to comment - ${siteName}`;
-  $doc.body.appendChild(h('script', '$(function() {$("input[name=post_comment]").click(post_comment);});'));
+  $doc.body.appendChild(
+    h('script', `$(function() {
+      autosize(document.querySelector('[name=comment]'));
+      $("input[name=post_comment]").click(post_comment);
+    });`)
+  );
   $doc.content.appendChild(h('div',
     newsToHTML(news),
     commentToHtml(comment, user),
@@ -536,7 +556,9 @@ app.get('/editcomment/:news_id/:comment_id', async (req, res, next) => {
   }
 
   $doc.title.textContent = `Edit comment - ${siteName}`;
-  $doc.body.appendChild(h('script', '$(function() {$("input[name=post_comment]").click(post_comment);});'));
+  $doc.body.appendChild(h('script', `$(function() {
+    autosize(document.querySelector('[name=comment]'));
+    $("input[name=post_comment]").click(post_comment);});`));
   [ newsToHTML(news),
     commentToHtml(comment, user),
     h('form', {name: 'f'},
@@ -617,7 +639,12 @@ app.get('/submit', (req, res) => {
   let bl = `javascript:window.location=%22${siteUrl}/submit?u=%22+encodeURIComponent(document.location)+%22&t=%22+encodeURIComponent(document.title)`;
   if (!$user) return res.redirect(`/login?redirect=${encodeURIComponent(req.originalUrl)}`);
   $doc.title.textContent = `Submit a new story - ${siteName}`;
-  $doc.body.appendChild(h('script', '$(function() {$("form[name=f]").submit(submit);});'));
+  $doc.body.appendChild(
+    h('script', `$(function() {
+      autosize(document.getElementById('text'));
+      $("form[name=f]").submit(submit);
+    });`)
+  );
   [ h('h2', 'Submit a new story'),
     h('div', {id: 'submitform'},
       h('form', {name: 'f'},
