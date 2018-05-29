@@ -78,10 +78,8 @@ app.use(async (req, res, next) => {
       h('script', {src: '//cdn.jsdelivr.net/npm/zepto@1.2.0/src/fx.js'}),
       h('script', {src: '//cdn.jsdelivr.net/npm/autosize@4.0.2/dist/autosize.min.js'}),
       h('script', {src: `/js/app.js?v=${version}`}),
-      $user ? h('script', `
-        var apisecret = '${$user.apisecret}';
-        ${keyboardNavigation == 1 ? 'setKeyboardNavigation();' : ''}
-      `) : ''
+      $user ? h('script', `var apisecret = '${$user.apisecret}';`) : '',
+      keyboardNavigation == 1 ? h('script', 'setKeyboardNavigation();') : ''
     )
   );
   $doc.head = head;
