@@ -191,7 +191,7 @@ app.get('/search', (req, res, next) => {
   let placeholders = ['CSS', 'ES6', 'HTTP', 'HTML5', 'JavaScript', 'Node.js', 'Webpack'];
   let random = _.random(parseInt(placeholders.length - 1));
   let placeholder = placeholders[random];
-  let searchtips = h('.searchtips', 'Simple full text search by ', h('a', {href: 'https://github.com/tj/reds'}, 'reds'),', only support English now.');
+  let searchtips = h('.searchtips', __('simple full text search'), h('a', {href: 'https://github.com/tj/reds'}, 'reds'), __('only supported English'));
 
   $doc.title.textContent = `${__('search news')} - ${siteName}`;
   if (!q) {
@@ -636,29 +636,29 @@ app.get('/submit', (req, res) => {
   let {t, u} = req.query;
   let bl = `javascript:window.location=%22${siteUrl}/submit?u=%22+encodeURIComponent(document.location)+%22&t=%22+encodeURIComponent(document.title)`;
   if (!$user) return res.redirect(`/login?redirect=${encodeURIComponent(req.originalUrl)}`);
-  $doc.title.textContent = `Submit a new story - ${siteName}`;
+  $doc.title.textContent = `${__('submit a new story')} - ${siteName}`;
   $doc.body.appendChild(
     h('script', `$(function() {
       autosize(document.getElementById('text'));
       $("form[name=f]").submit(submit);
     });`)
   );
-  [ h('h2', 'Submit a new story'),
+  [ h('h2', __('submit a new story')),
     h('div', {id: 'submitform'},
       h('form', {name: 'f'},
         h('input', {name: 'news_id', type: 'hidden', value: -1}),
-        h('label', {for: 'title'}, 'title'),
-        h('input.card.w-100', {id: 'title', name: 'title', type: 'text', placeholder: 'Type your story title here', value: (t ? _.escape(t) : ''), required: true}), h('br'),
-        h('label', {for: 'url'}, 'url'),
-        h('input.card.w-100', {id: 'url', name: 'url', type: 'text', placeholder: 'Type your story url here', value: (u ? _.escape(u) : '')}), h('br'),
-        h('label', {for: 'text'}, 'text'),
-        h('textarea.card.w-100', {id: 'text', name: 'text', rows: 6, placeholder: 'If you don\'t have an url, type some text here in Markdown or HTML'}), h('br'),
-        h('input.btn.btn-small.primary', {name: 'do_submit', type: 'submit', value: 'Submit'})
+        h('label', {for: 'title'}, __('title')),
+        h('input.card.w-100', {id: 'title', name: 'title', type: 'text', placeholder: __('type story title'), value: (t ? _.escape(t) : ''), required: true}), h('br'),
+        h('label', {for: 'url'}, __('url')),
+        h('input.card.w-100', {id: 'url', name: 'url', type: 'text', placeholder: __('type story url'), value: (u ? _.escape(u) : '')}), h('br'),
+        h('label', {for: 'text'}, __('text')),
+        h('textarea.card.w-100', {id: 'text', name: 'text', rows: 6, placeholder: __('type some text')}), h('br'),
+        h('input.btn.btn-small.primary', {name: 'do_submit', type: 'submit', value: __('submit')})
       )
     ),
     h('div', {id: 'errormsg'}),
-    h('p', 'Submitting news is simpler using the ', h('a', {href: bl}, 'bookmarklet'),
-      ' (drag the link to your browser toolbar)')
+    h('p', __('submitting news is simpler using the'), h('a', {href: bl}, __('bookmarklet')),
+      __('drag the link'))
   ].forEach(node => {
     $doc.content.appendChild(node);
   });

@@ -102,8 +102,10 @@ header nav.language a {
     margin: 0;
 }
 
-.comment > pre > p > code {
+.comment > pre > p > code,
+.comment > pre > ul > li > code {
     background-color: var(--light);
+    padding: 1px 2px;
 }
 
 .comment .avatar img,
