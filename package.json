@@ -3,12 +3,12 @@
   "version": "0.2.1",
   "description": "The LN(lamer news) style social news site written in Node",
   "scripts": {
-    "cover": "cross-env NODE_ENV=test nyc mocha",
+    "cover": "cross-env NODE_ENV=test nyc mocha --exit",
     "dev": "cross-env DEBUG=jsernews:* nodemon bin/www",
     "start": "node bin/www",
     "lint": "eslint *.js test/*.js --env mocha",
     "pretest": "npm run lint",
-    "test": "cross-env NODE_ENV=test mocha"
+    "test": "cross-env NODE_ENV=test mocha --exit"
   },
   "repository": {
     "type": "git",
@@ -43,7 +43,7 @@
   "devDependencies": {
     "cross-env": "^5.1.1",
     "eslint": "^4.15.0",
-    "mocha": "^3.2.0",
+    "mocha": "^4.1.0",
     "nodemon": "^1.14.11",
     "nyc": "^11.3.0",
     "should": "^11.2.1",
