@@ -360,6 +360,14 @@ app.get('/user/:username', async (req, res, next) => {
     h('h2', _.escape(user.username)),
     h('pre', _.escape(user.about)),
     h('ul',
+      h('li', h('a', {href: user.github_html_url, style: 'color: #181717'}, [
+        h('img', {src: 'https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/github.svg', width: '24', style: 'vertical-align: sub'}),
+        ` @${user.username} `
+      ])),
+      user.blog ? h('li', h('a', {href: user.blog, style: 'color: #181717'}, [
+        h('img', {src: 'https://png.icons8.com/metro/50/000000/link.png', width: '20', style: 'vertical-align: sub'}),
+        ` ${user.blog}`
+      ])) : '',
       h('li', h('b', 'created '), strElapsed(+ user.ctime)),
       h('li', h('b', 'karma '), `${user.karma} points`),
       h('li', h('b', 'posted news '), `${posted_news[1]}`),
